@@ -875,3 +875,35 @@ Each is a thin `@Inject constructor` class with one `operator fun invoke(...)`. 
 ## After Plan 2
 
 Plan 3 (UI): theme finalization, Navigation Compose graph, Home / Game / Stats / Settings screens + ViewModels, reusable board components, lifecycle/timer via `SavedStateHandle`, on-demand generation loading state, accessibility + edge-to-edge, Compose UI + ViewModel tests.
+
+---
+
+## Execution outcome (2026-09-04)
+
+**STATUS: COMPLETE.** Branch `feat/plan-1-scaffold-domain` (kept the single
+branch through Plans 1–3). 79 JVM unit tests + 4 instrumented DAO tests green;
+`assembleDebug`, `assembleDebugAndroidTest`, `lintDebug` green.
+
+**Deviations:**
+- **Task 4** `Converters.kt` skipped (all columns are primitive/String).
+- **Task 6**: `CurrentGameEntity` stores one `snapshotJson` blob (the whole
+  `GameSnapshot`) rather than separate board/notes/stack columns — the snapshot
+  is always read and written whole, so splitting it buys nothing.
+- **Task 9**: debounce is the ViewModel's job (Plan 3); `GameRepository.save`
+  is a plain writer.
+- **Task 11**: the nine use cases live in one file `domain/usecase/GameUseCases.kt`
+  rather than nine files. `CompletePuzzle` injects `CompletedPuzzleDao` directly
+  (no separate history repo).
+- **Task 13**: `MigrationTest` removed. Room 2.8.4's `MigrationTestHelper` has a
+  different constructor/`createDatabase` shape than the plan's draft, and there
+  is no v2 schema to migrate yet. DAO tests + committed `app/schemas/…/1.json`
+  cover v1. Re-add a migration test with the first schema bump.
+- Extra files: `di/DomainModule.kt`, `di/SettingsModule.kt`,
+  `domain/campaign/CampaignProgress.kt`, `domain/stats/{PlayerStats,Streaks}.kt`,
+  `data/db/DaoTestBase.kt`.
+- Added compiler arg `-Xannotation-default-target=param-property` (Kotlin 2.2
+  qualifier-target warning with Hilt `@Qualifier`s).
+- Added `androidx.sqlite:sqlite-bundled` + truth/turbine/coroutines-test to
+  `androidTestImplementation`.
+
+**MIN_BUFFER** fixed at 4 (`PuzzleRepository`).
