@@ -39,7 +39,6 @@ que el generador realmente produce. Guards + búsqueda reproducible en
 ## Bordes conocidos (no bloqueantes)
 
 - Primera generación on-demand bloquea ~1–3 s con spinner (el buffer se llena en background después).
-- Ícono de launcher es un placeholder de color plano.
 - **Hueco de dificultad media-alta**: el solver del MVP llega hasta X-Wing → distribución bimodal
   de dificultad, poca cobertura en el rango DIFICIL. Fix real = agregar técnicas al solver
   (XY-Wing, colouring, Y-Wing). Spec §10.2. **Decisión del usuario: diferido.**
@@ -66,6 +65,15 @@ mínimo práctico (~25 pistas). Se agregó un piso de pistas (`minGivens`) que
 empieza en 40 para el puzzle #1 y decae hasta el tallado normal (24) hacia el
 puzzle #15. Verificado en dispositivo: puzzle #1 ahora tiene 40 pistas y banda
 **Principiante** (antes: ~25 pistas, banda Fácil).
+
+## Ícono real (2026-09-04)
+
+Reemplazado el placeholder de color plano por un diseño real: grilla blanca 3x3
+con una celda destacada en dorado sobre un degradé azul diagonal. Ícono
+adaptativo (fondo + foreground + capa monocroma para Android 13+) más los PNG
+legacy (pre-API 26) generados con Pillow desde el mismo diseño
+(`scripts/render_launcher_icon.py`). Verificado en el emulador: se ve limpio y
+reconocible en el cajón de apps. Lint quedó sin advertencias de ícono.
 
 ## Verificación del usuario
 
