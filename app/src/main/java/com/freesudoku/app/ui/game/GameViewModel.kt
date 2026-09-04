@@ -25,7 +25,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -38,6 +37,7 @@ class GameViewModel @Inject constructor(
     private val completePuzzle: CompletePuzzle,
     private val abandonGame: AbandonGame,
     private val settingsRepository: SettingsRepository,
+    private val ticker: Ticker,
     @ApplicationScope private val appScope: CoroutineScope,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -209,8 +209,7 @@ class GameViewModel @Inject constructor(
 
     private fun startTimerLoop() {
         viewModelScope.launch {
-            while (isActive) {
-                delay(1_000)
+            ticker.oneSecondTicks().collect {
                 if (resumed && ::snapshot.isInitialized && snapshot.status == GameStatus.IN_PROGRESS) {
                     snapshot = engine.tick(snapshot, 1_000)
                     render()
