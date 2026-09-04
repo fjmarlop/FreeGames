@@ -81,8 +81,30 @@ El usuario probó el **modo con límite de 3 errores** en su propio dispositivo 
 confirmó que funciona correctamente (celda marcada, contador, fin de partida al
 tercer error).
 
+## Rediseño visual "Apex Precision" (2026-09-04)
+
+El usuario compartió mockups (Stitch) con un sistema de diseño oscuro/industrial
+("Apex Precision": Space Grotesk / Geist / JetBrains Mono, paleta acero-azul +
+dorado, sin glow, bordes achaflanados). Los mockups mezclaban look nuevo +
+funciones nuevas (XP, rangos, temporadas, logros, desafío diario, contrarreloj,
+selección de dificultad, puntos, sonido/háptica, tutorial, reset de stats, PRO).
+**Decisión del usuario: solo el reskin visual**, sin ninguna de esas funciones
+nuevas.
+
+Aplicado a las 4 pantallas existentes sin tocar la lógica de negocio:
+- Tema nuevo (fuentes variables Space Grotesk/Geist/JetBrains Mono bundleadas,
+  paletas oscura+clara, formas "Soft Technical").
+- Nav inferior (Inicio/Estadísticas/Ajustes) reemplaza los botones de texto.
+- Juego: contador de errores reskineado como 3 escudos ("vidas"), footer de
+  dificultad + % completado (derivados de datos ya existentes).
+- Estadísticas: desglose por dificultad con las 6 bandas (dato ya existente).
+- Ajustes: toggles como filas con ícono, selector de tema como tarjetas.
+
+113 tests unitarios + 9 instrumentados en verde, lint limpio. Verificado en el
+emulador en claro y oscuro, las 4 pantallas.
+
 ## Estado
 
 Todo mergeado a `master`. MVP funcional + rater calibrado + bug de finalización
-corregido + límite de errores confirmado por el usuario. Ver `docs/plans/*` y
-`docs/designs/*` para detalles y desvíos.
+corregido + límite de errores confirmado por el usuario + reskin visual
+aplicado. Ver `docs/plans/*` y `docs/designs/*` para detalles y desvíos.
