@@ -40,6 +40,12 @@ android {
         compose = true
     }
 
+    lint {
+        warningsAsErrors = false
+        // local.properties is machine-specific and git-ignored; its escaping is not our concern.
+        disable += "PropertyEscape"
+    }
+
     testOptions {
         unitTests {
             isReturnDefaultValues = true
