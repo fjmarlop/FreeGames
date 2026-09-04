@@ -388,3 +388,21 @@ Y-Wing) — llenaría el hueco, subiría ρ y daría a la campaña una curva con
 
 Ver `docs/plans/2026-09-04-freesudoku-plan-1-scaffold-and-domain.md` →
 "Execution outcome" para desvíos de toolchain.
+
+### 10.3 Piso de pistas para la campaña temprana (2026-09-04)
+
+Feedback de usuarios probando la app: el nivel "fácil" no enganchaba — el puzzle
+#1 ya salía tallado a su mínimo práctico (~24–30 pistas), técnicamente resoluble
+solo con singles pero visualmente intimidante para alguien nuevo. Se agregó
+`PuzzleCarver.carve(solution, minGivens)` (corta el tallado al llegar a
+`minGivens`) y `CampaignCurve.minGivensFor(puzzleNumber)`: empieza en 40 pistas
+para el puzzle #1 y decae a un piso de 24 (territorio de tallado completo) hacia
+el puzzle #15. `PuzzleFactory.generateForCampaign` lo usa; `generateForTarget`
+mantiene el default anterior (17 = tallar al máximo) para no afectar nada más.
+
+| Constante | Ubicación | Valor |
+|-----------|-----------|-------|
+| `GIVENS_START` / `GIVENS_DECAY` / `GIVENS_FLOOR` | `CampaignCurve` | 40 / 6.0 / 24 |
+
+Verificado en dispositivo: puzzle #1 pasó de ~25 pistas / banda Fácil a 40
+pistas / banda Principiante.

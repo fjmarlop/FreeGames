@@ -58,6 +58,15 @@ terminar), documentado y con tests de regresión en `GameViewModelTest`.
 Verificado en el emulador leyendo la base Room directamente y jugando dos
 puzzles completos por los dos caminos ("Siguiente puzzle" y "Volver a Home").
 
+## Nivel fácil más accesible (2026-09-04)
+
+El usuario probando la app pidió bajar la dificultad del nivel fácil para
+"enganchar" mejor a nuevos jugadores. Causa: el puzzle #1 ya se tallaba a su
+mínimo práctico (~25 pistas). Se agregó un piso de pistas (`minGivens`) que
+empieza en 40 para el puzzle #1 y decae hasta el tallado normal (24) hacia el
+puzzle #15. Verificado en dispositivo: puzzle #1 ahora tiene 40 pistas y banda
+**Principiante** (antes: ~25 pistas, banda Fácil).
+
 ## Verificación del usuario
 
 El usuario probó el **modo con límite de 3 errores** en su propio dispositivo y
