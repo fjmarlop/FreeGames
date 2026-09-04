@@ -26,9 +26,12 @@ class CampaignCurve {
     }
 
     companion object {
-        const val CURVE_BASE = 4.0
-        const val CURVE_GROWTH = 12.0
-        const val CURVE_MAX = 88.0
+        // Calibrated to the score range the generator actually produces (see RaterCalibrationTest
+        // and the generator's bimodal carve distribution): a gentle ramp through PRINCIPIANTE ->
+        // MEDIO over the first ~40 puzzles, then up into DIFICIL/EXPERTO, saturating near 56.
+        const val CURVE_BASE = 9.0
+        const val CURVE_GROWTH = 7.0
+        const val CURVE_MAX = 56.0
         const val CURVE_NOISE = 3.0
         const val CARVE_TOLERANCE_BASE = 6.0
         const val CARVE_TOLERANCE_STEP = 1.5

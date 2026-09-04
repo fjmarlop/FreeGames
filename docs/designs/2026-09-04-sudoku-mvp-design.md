@@ -352,25 +352,39 @@ sobrevivir recreación de proceso; la verdad del juego siempre re-lee de Room.
 9. Integración: refill de buffer en background, on-demand fallback, pulido de ciclo de vida.
 10. Pasada de tests E2E/UI, accesibilidad básica (contentDescription, tamaños de toque ≥ 48dp, contraste), edge-to-edge.
 
-## 10. Valores de calibración (implementados en Plan 1)
+## 10. Valores de calibración
 
-Fijados en `domain/` durante la ejecución del Plan 1. Verificados por tests de
-ordenamiento relativo, **no** contra un set de puzzles etiquetados por humanos —
-pendiente de tuning fino cuando exista ese set (solo mueve constantes, no la
-estructura).
+### 10.1 `DifficultyRater` + bandas — calibrados contra puzzles reales (2026-09-04)
+
+Ajustados por búsqueda aleatoria contra **510 puzzles del sudoku-exchange puzzle
+bank** (tiers easy/medium/hard/diabolical, rating humano 1.2–9.2), fixture en
+`app/src/test/resources/fixtures/rated_puzzles.csv`. Objetivo: correlación de
+rangos con el rating humano + precisión de banda. Resultado: **Spearman ρ ≈ 0.86**,
+y la banda predicha de **cada** puzzle cae a ≤ 1 de su banda objetivo derivada del
+rating. Guard + búsqueda reproducibles en `RaterCalibrationTest`.
 
 | Constante | Ubicación | Valor |
 |-----------|-----------|-------|
 | Costes de técnica | `TECHNIQUE_COST` | NakedSingle 10, HiddenSingle 15, LockedCandidates 25, NakedSubset 40, HiddenSubset 48, XWing 65 |
-| `W_HARDEST` / `W_FREQ` / `W_CLUES` | `DifficultyRater` | 0.60 / 0.10 / 0.80 |
-| `RATER_CLUE_PIVOT` | `DifficultyRater` | 32 |
-| `UNSOLVED_PENALTY` | `DifficultyRater` | 25.0 |
-| Rangos de banda (score) | `DifficultyBand` | PRINCIPIANTE 0, FACIL 12, MEDIO 25, DIFICIL 40, EXPERTO 58, MAESTRO 78 |
-| `CURVE_BASE` / `CURVE_GROWTH` / `CURVE_MAX` / `CURVE_NOISE` | `CampaignCurve` | 4.0 / 12.0 / 88.0 / 3.0 |
+| `wHardest` / `wFrequency` / `wClues` | `RatingWeights.DEFAULT` | 0.53 / 0.05 / 0.66 |
+| `cluePivot` | `RatingWeights.DEFAULT` | 34 |
+| `unsolvedPenalty` | `RatingWeights.DEFAULT` | 39.0 |
+| Rangos de banda (score) | `DifficultyBand` | PRINCIPIANTE 0, FACIL 9, MEDIO 23, DIFICIL 40, EXPERTO 49, MAESTRO 80 |
+| `CURVE_BASE` / `CURVE_GROWTH` / `CURVE_MAX` / `CURVE_NOISE` | `CampaignCurve` | 9.0 / 7.0 / 56.0 / 3.0 |
 | `CARVE_TOLERANCE_BASE` / `_STEP` / `_MAX` | `CampaignCurve` | 6.0 / 1.5 / 20.0 |
 | `CARVE_MAX_ATTEMPTS` | `PuzzleFactory` | 40 |
-| `MIN_BUFFER` | (Plan 2 — `PuzzleRepository`) | por definir en Plan 2 (propuesto: 5) |
+| `MIN_BUFFER` | `PuzzleRepository` | 4 |
+
+### 10.2 Limitación conocida: hueco de dificultad media-alta
+
+El solver del MVP llega hasta X-Wing. Los puzzles que necesitan técnicas más
+avanzadas (XY-Wing, coloring, cadenas…) el solver no los resuelve → puntúan por
+`unsolvedPenalty`. Consecuencia: el tallado greedy produce una distribución
+**bimodal** — la mayoría de puzzles caen en 12–29 (PRINCIPIANTE→MEDIO) o en 53–71
+(DIFICIL→MAESTRO), con **poca cobertura en 30–52** (DIFICIL). La `CampaignCurve` se
+bajó a `CURVE_MAX 56` para no apuntar a scores que el generador casi nunca produce.
+**Fix real (follow-up):** agregar 2–3 técnicas al solver (XY-Wing, Simple Colouring,
+Y-Wing) — llenaría el hueco, subiría ρ y daría a la campaña una curva continua real.
 
 Ver `docs/plans/2026-09-04-freesudoku-plan-1-scaffold-and-domain.md` →
-"Execution outcome" para el detalle de desvíos de toolchain (Gradle 9.6 / AGP 9 /
-Kotlin built-in / compileSdk 37).
+"Execution outcome" para desvíos de toolchain.
