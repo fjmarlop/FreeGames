@@ -15,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.freesudoku.app.ui.format.formatDuration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,20 +25,35 @@ fun ResultSheet(
     onNext: () -> Unit,
     onHome: () -> Unit,
 ) {
-    ModalBottomSheet(onDismissRequest = onHome, modifier = Modifier.testTag("result_sheet")) {
+    ModalBottomSheet(
+        onDismissRequest = onHome,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.testTag("result_sheet"),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(24.dp)
                 .padding(bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text("¡Completado!", style = MaterialTheme.typography.headlineSmall)
-            Text("Tiempo: $elapsedMsText")
-            Text("Errores: $mistakes")
-            Text("Pistas: $hintsUsed")
-            Button(onClick = onNext, modifier = Modifier.fillMaxWidth().testTag("result_next")) {
+            ApexChip(text = "Objetivo cumplido", emphasized = true)
+            Text(
+                "¡Completado!",
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
+            )
+            ResultStat("Tiempo", elapsedMsText)
+            ResultStat("Errores", mistakes.toString())
+            ResultStat("Pistas", hintsUsed.toString())
+            Button(
+                onClick = onNext,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+                    .testTag("result_next"),
+            ) {
                 Text("Siguiente puzzle")
             }
             TextButton(onClick = onHome, modifier = Modifier.fillMaxWidth()) {
@@ -49,4 +63,11 @@ fun ResultSheet(
     }
 }
 
-fun resultTime(millis: Long): String = formatDuration(millis)
+@Composable
+private fun ResultStat(label: String, value: String) {
+    Text(
+        "$label: $value",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}

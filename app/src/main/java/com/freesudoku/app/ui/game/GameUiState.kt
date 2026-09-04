@@ -1,5 +1,6 @@
 package com.freesudoku.app.ui.game
 
+import com.freesudoku.app.domain.model.DifficultyBand
 import com.freesudoku.app.domain.model.GameStatus
 
 data class CellUi(
@@ -26,6 +27,7 @@ data class GameUiState(
     val canRedo: Boolean = false,
     val puzzleNumber: Int = 0,
     val hintsUsed: Int = 0,
+    val band: DifficultyBand? = null,
 ) {
     companion object {
         const val MISTAKE_LIMIT = 3

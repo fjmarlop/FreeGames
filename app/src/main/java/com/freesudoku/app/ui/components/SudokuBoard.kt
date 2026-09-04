@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.freesudoku.app.ui.game.CellUi
+import com.freesudoku.app.ui.theme.JetBrainsMono
 
 @Composable
 fun SudokuBoard(
@@ -32,18 +33,19 @@ fun SudokuBoard(
     modifier: Modifier = Modifier,
 ) {
     if (cells.size != 81) return
-    val line = MaterialTheme.colorScheme.onSurface
+    val boxLine = MaterialTheme.colorScheme.outline
+    val cellLine = MaterialTheme.colorScheme.outlineVariant
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .background(MaterialTheme.colorScheme.surface)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .drawBehind {
                 val step = size.width / 9f
                 for (i in 0..9) {
-                    val strokePx = if (i % 3 == 0) 3.dp.toPx() else 1.dp.toPx()
-                    val color = if (i % 3 == 0) line else line.copy(alpha = 0.4f)
+                    val strokePx = if (i % 3 == 0) 2.5.dp.toPx() else 1.dp.toPx()
+                    val color = if (i % 3 == 0) boxLine else cellLine
                     drawLine(color, Offset(i * step, 0f), Offset(i * step, size.height), strokePx)
                     drawLine(color, Offset(0f, i * step), Offset(size.width, i * step), strokePx)
                 }
@@ -81,10 +83,10 @@ private fun CellView(
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val bg = when {
-        cell.selected -> scheme.primary.copy(alpha = 0.30f)
-        cell.sameValueAsSelection -> scheme.primary.copy(alpha = 0.16f)
-        cell.inSelectionScope -> scheme.primary.copy(alpha = 0.07f)
+    val background = when {
+        cell.selected -> scheme.primaryContainer.copy(alpha = 0.35f)
+        cell.sameValueAsSelection -> scheme.primaryContainer.copy(alpha = 0.20f)
+        cell.inSelectionScope -> scheme.surfaceContainerHigh
         else -> Color.Transparent
     }
     val textColor = when {
@@ -95,7 +97,7 @@ private fun CellView(
 
     Box(
         modifier = modifier
-            .background(bg)
+            .background(background)
             .clickable(onClick = onClick)
             .testTag("cell_$index")
             .semantics {
@@ -111,8 +113,9 @@ private fun CellView(
             cell.value != 0 -> Text(
                 text = cell.value.toString(),
                 color = textColor,
-                fontWeight = if (cell.given) FontWeight.Bold else FontWeight.Normal,
-                fontSize = 20.sp,
+                fontFamily = JetBrainsMono,
+                fontWeight = if (cell.given) FontWeight.Bold else FontWeight.SemiBold,
+                fontSize = 19.sp,
             )
             cell.notes.isNotEmpty() -> NotesGrid(cell.notes)
         }
@@ -128,6 +131,7 @@ private fun NotesGrid(notes: Set<Int>) {
                     val d = r * 3 + c + 1
                     Text(
                         text = if (d in notes) d.toString() else " ",
+                        fontFamily = JetBrainsMono,
                         fontSize = 8.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 1.dp),

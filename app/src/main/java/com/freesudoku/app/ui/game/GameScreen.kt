@@ -3,25 +3,34 @@ package com.freesudoku.app.ui.game
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.freesudoku.app.domain.model.GameStatus
+import com.freesudoku.app.ui.common.label
 import com.freesudoku.app.ui.components.GameToolbar
 import com.freesudoku.app.ui.components.GameTopStatus
 import com.freesudoku.app.ui.components.NumberPad
@@ -81,12 +90,18 @@ fun GameContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("FreeSudoku") },
+                title = { Text("Partida en vivo") },
                 navigationIcon = {
-                    TextButton(onClick = callbacks.onBack) { Text("Salir") }
+                    IconButton(onClick = callbacks.onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Salir")
+                    }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                ),
             )
         },
+        containerColor = MaterialTheme.colorScheme.background,
     ) { inner ->
         Box(
             modifier = Modifier
@@ -108,6 +123,7 @@ fun GameContent(
                         elapsedText = state.elapsedText,
                         mistakes = state.mistakes,
                         mistakeLimitEnabled = state.mistakeLimitEnabled,
+                        band = state.band,
                     )
                     SudokuBoard(cells = state.cells, onCellClick = callbacks.onCellTap)
                     GameToolbar(
@@ -124,6 +140,7 @@ fun GameContent(
                         remainingPerDigit = state.remainingPerDigit,
                         onInput = callbacks.onNumberInput,
                     )
+                    ProgressFooter(state)
                 }
             }
         }
@@ -151,5 +168,26 @@ fun GameContent(
                 },
             )
         }
+    }
+}
+
+@Composable
+private fun ProgressFooter(state: GameUiState) {
+    val filled = state.cells.count { it.value != 0 }
+    val percent = if (state.cells.isEmpty()) 0 else (filled * 100 / state.cells.size)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            "Dificultad: ${state.band?.label() ?: "—"}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            "$percent% completado",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

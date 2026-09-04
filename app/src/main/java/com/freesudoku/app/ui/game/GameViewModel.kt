@@ -253,6 +253,7 @@ class GameViewModel @Inject constructor(
             canRedo = snapshot.redoStack.isNotEmpty(),
             puzzleNumber = snapshot.puzzle.number ?: 0,
             hintsUsed = snapshot.hintsUsed,
+            band = snapshot.puzzle.band,
         )
     }
 
