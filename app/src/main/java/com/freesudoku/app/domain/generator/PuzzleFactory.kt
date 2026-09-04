@@ -20,15 +20,18 @@ class PuzzleFactory(
     private val maxAttempts: Int = CARVE_MAX_ATTEMPTS,
 ) {
     fun generateForCampaign(number: Int): Puzzle =
-        generateForTarget(curve.targetScore(number)).copy(number = number)
+        generateForTarget(curve.targetScore(number), curve.minGivensFor(number)).copy(number = number)
 
-    fun generateForTarget(targetScore: Double): Puzzle {
+    fun generateForTarget(
+        targetScore: Double,
+        minGivens: Int = PuzzleCarver.MIN_GIVENS_UNIQUE,
+    ): Puzzle {
         var best: Puzzle? = null
         var bestGap = Double.MAX_VALUE
 
         for (attempt in 0 until maxAttempts) {
             val solution = fullGridGenerator.generate()
-            val carved = carver.carve(solution)
+            val carved = carver.carve(solution, minGivens)
             val rating = rater.rate(carved.givens)
             val gap = abs(rating.score - targetScore)
 

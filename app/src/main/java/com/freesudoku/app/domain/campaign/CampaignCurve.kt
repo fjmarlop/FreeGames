@@ -2,6 +2,7 @@ package com.freesudoku.app.domain.campaign
 
 import kotlin.math.ln
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 /**
  * Maps a campaign puzzle number to a target difficulty score: monotonically rising, saturating
@@ -17,6 +18,19 @@ class CampaignCurve {
 
     fun toleranceWindow(attempt: Int): Double =
         min(CARVE_TOLERANCE_MAX, CARVE_TOLERANCE_BASE + CARVE_TOLERANCE_STEP * attempt)
+
+    /**
+     * Minimum clue count for the carver at this puzzle number: a dense, gentle grid for the
+     * first puzzles (mostly filled in, only a handful of obvious deductions) that thins out to
+     * a normal full carve by ~puzzle 15. Without this, even puzzle #1 was carved to its practical
+     * minimum (~24-30 clues) — technically singles-only, but a wall of empty cells is a rough
+     * first impression for a brand-new player.
+     */
+    fun minGivensFor(puzzleNumber: Int): Int {
+        require(puzzleNumber >= 1) { "puzzle number is 1-based" }
+        val value = GIVENS_START - GIVENS_DECAY * ln(puzzleNumber.toDouble())
+        return value.roundToInt().coerceIn(GIVENS_FLOOR, GIVENS_START)
+    }
 
     private fun deterministicNoise(n: Int): Double {
         var h = n * 2654435761L
@@ -36,5 +50,8 @@ class CampaignCurve {
         const val CARVE_TOLERANCE_BASE = 6.0
         const val CARVE_TOLERANCE_STEP = 1.5
         const val CARVE_TOLERANCE_MAX = 20.0
+        const val GIVENS_START = 40
+        const val GIVENS_DECAY = 6.0
+        const val GIVENS_FLOOR = 24
     }
 }

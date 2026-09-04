@@ -33,4 +33,19 @@ class CampaignCurveTest {
     @Test fun `same puzzle number always yields the same target`() {
         assertThat(curve.targetScore(37)).isEqualTo(curve.targetScore(37))
     }
+
+    @Test fun `first puzzle gets the densest, most forgiving grid`() {
+        assertThat(curve.minGivensFor(1)).isEqualTo(CampaignCurve.GIVENS_START)
+    }
+
+    @Test fun `minGivens decreases then floors out for a full carve`() {
+        val values = (1..100).map { curve.minGivensFor(it) }
+        for (i in 1 until values.size) assertThat(values[i]).isAtMost(values[i - 1])
+        assertThat(curve.minGivensFor(100)).isEqualTo(CampaignCurve.GIVENS_FLOOR)
+    }
+
+    @Test fun `minGivens never drops below the classic unique-solution floor`() {
+        assertThat(curve.minGivensFor(1)).isAtLeast(CampaignCurve.GIVENS_FLOOR)
+        assertThat(curve.minGivensFor(10_000)).isAtLeast(CampaignCurve.GIVENS_FLOOR)
+    }
 }

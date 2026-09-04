@@ -32,6 +32,20 @@ class PuzzleFactoryTest {
         assertThat(factory(3).generateForCampaign(number = 12).number).isEqualTo(12)
     }
 
+    @Test fun `the first campaign puzzle is dense and lands in a beginner band`() {
+        for (seed in 1L..5L) {
+            val puzzle = factory(seed).generateForCampaign(number = 1)
+            assertThat(puzzle.givens.filledCount).isAtLeast(CampaignCurve.GIVENS_START)
+            assertThat(puzzle.band.ordinal).isAtMost(DifficultyBand.FACIL.ordinal)
+        }
+    }
+
+    @Test fun `campaign puzzles get denser than a plain target-only carve at the same score`() {
+        val campaignPuzzle = factory(7).generateForCampaign(number = 1)
+        val plainPuzzle = factory(7).generateForTarget(targetScore = campaignPuzzle.difficultyScore)
+        assertThat(campaignPuzzle.givens.filledCount).isGreaterThan(plainPuzzle.givens.filledCount)
+    }
+
     @Test fun `id is non-empty`() {
         assertThat(factory(4).generateForTarget(15.0).id).isNotEmpty()
     }

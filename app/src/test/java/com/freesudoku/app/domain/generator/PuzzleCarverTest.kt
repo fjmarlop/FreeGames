@@ -28,6 +28,26 @@ class PuzzleCarverTest {
         assertThat(a.givens).isEqualTo(b.givens)
     }
 
+    @Test fun `respects a higher minGivens floor and stays unique`() {
+        val full = FullGridGenerator(Random(21)).generate()
+        val carved = PuzzleCarver(Random(23)).carve(full, minGivens = 40)
+        assertThat(carved.givens.filledCount).isAtLeast(40)
+        assertThat(SolutionCounter().countUpTo(carved.givens, limit = 2)).isEqualTo(1)
+    }
+
+    @Test fun `a dense minGivens carve still yields fewer clues than the full grid`() {
+        val full = FullGridGenerator(Random(29)).generate()
+        val carved = PuzzleCarver(Random(31)).carve(full, minGivens = 40)
+        assertThat(carved.givens.filledCount).isLessThan(81)
+    }
+
+    @Test fun `rejects a minGivens below the classic unique minimum`() {
+        val full = FullGridGenerator(Random(37)).generate()
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
+            PuzzleCarver(Random(1)).carve(full, minGivens = 10)
+        }
+    }
+
     @Test fun `every given matches the solution`() {
         val full = FullGridGenerator(Random(13)).generate()
         val carved = PuzzleCarver(Random(17)).carve(full)
