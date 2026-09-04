@@ -160,7 +160,11 @@ class GameViewModel @Inject constructor(
         }
     }
 
-    /** After a FAILED game: replay the same puzzle from scratch. */
+    /**
+     * Restarts the current puzzle from scratch: same givens/solution, but a clean board, timer,
+     * mistake count and undo/redo history. Used both after a FAILED game and from the in-game
+     * "Reiniciar" action (with a confirmation dialog — this itself does not ask).
+     */
     fun onRetry() {
         runTerminalAction {
             snapshot = startGame(snapshot.puzzle, settings)

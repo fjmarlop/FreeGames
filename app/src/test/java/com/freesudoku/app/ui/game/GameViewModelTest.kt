@@ -120,6 +120,28 @@ class GameViewModelTest {
         assertThat(vm.uiState.value.cells[2].value).isEqualTo(0)
     }
 
+    @Test fun `onRetry restarts the same puzzle from scratch mid-game`() = runTest {
+        val startGame = mockk<StartGame>()
+        coEvery { startGame(any(), any()) } returns freshSnapshot()
+        val vm = build(startGame = startGame)
+
+        vm.onCellTap(2)
+        vm.onNumberInput(4) // correct
+        vm.onCellTap(3)
+        vm.onNumberInput(9) // wrong -> a mistake
+
+        assertThat(vm.uiState.value.mistakes).isEqualTo(1)
+
+        vm.onRetry()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { startGame(puzzle, any()) }
+        assertThat(vm.uiState.value.mistakes).isEqualTo(0)
+        assertThat(vm.uiState.value.status).isEqualTo(GameStatus.IN_PROGRESS)
+        assertThat(vm.uiState.value.canUndo).isFalse()
+        assertThat(vm.uiState.value.cells[2].value).isEqualTo(0)
+    }
+
     @Test fun `completing the board marks COMPLETED but does not record until advance`() = runTest {
         val complete = mockk<CompletePuzzle>(relaxed = true)
         val vm = build(completePuzzle = complete)
