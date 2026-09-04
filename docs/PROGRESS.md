@@ -1,7 +1,7 @@
 # FreeSudoku — progreso (autónomo, 2026-09-04)
 
-Rama: `feat/plan-1-scaffold-domain` · todo commiteado.
-**MVP funcional end-to-end verificado en emulador (API 35).**
+Rama: `master` · todo commiteado.
+**MVP funcional end-to-end verificado en emulador (API 35) y por el usuario en dispositivo real.**
 
 ## Estado: los 3 planes completos ✅
 
@@ -58,7 +58,14 @@ terminar), documentado y con tests de regresión en `GameViewModelTest`.
 Verificado en el emulador leyendo la base Room directamente y jugando dos
 puzzles completos por los dos caminos ("Siguiente puzzle" y "Volver a Home").
 
+## Verificación del usuario
+
+El usuario probó el **modo con límite de 3 errores** en su propio dispositivo y
+confirmó que funciona correctamente (celda marcada, contador, fin de partida al
+tercer error).
+
 ## Estado
 
 Todo mergeado a `master`. MVP funcional + rater calibrado + bug de finalización
-corregido. Ver `docs/plans/*` y `docs/designs/*` para detalles y desvíos.
+corregido + límite de errores confirmado por el usuario. Ver `docs/plans/*` y
+`docs/designs/*` para detalles y desvíos.
