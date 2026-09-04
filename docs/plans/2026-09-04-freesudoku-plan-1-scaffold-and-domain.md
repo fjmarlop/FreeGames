@@ -1,5 +1,9 @@
 # FreeSudoku — Plan 1: Scaffold + Domain Engine
 
+> **STATUS: COMPLETE (2026-09-04).** All 12 tasks implemented on branch
+> `feat/plan-1-scaffold-domain`. 65 JVM unit tests green, `assembleDebug` green,
+> `lintDebug` green. See "Execution outcome" at the bottom for deviations.
+
 > **For agentic workers:** Use `mobiai-mobile-executing-plans-with-subagents` (recommended) or `mobiai-mobile-executing-plans` to implement this plan task-by-task. Steps use checkbox syntax for tracking.
 
 **Goal:** Stand up the Android project and build the entire pure-Kotlin Sudoku engine — grid model, full-grid generator, logical solver with human techniques, difficulty rater, puzzle carver, campaign curve, and the pure game engine (moves/undo/redo/hints/validation).
@@ -2640,3 +2644,64 @@ Plan 2 (`data`) and Plan 3 (`ui`) will be written as their own documents once Pl
 
 - **Plan 2 — Data layer:** Room entities + DAOs (`PuzzleBufferEntity`, `CurrentGameEntity`, `CompletedPuzzleEntity`, `CampaignProgressEntity`), `TypeConverter`s, DB + migration v1, DataStore settings, repositories (`PuzzleRepository` with background refill, `GameRepository` with debounced save, `StatsRepository`, `SettingsRepository`, `CampaignRepository`), entity↔domain mappers, the repo-backed use cases from §3.5, Hilt modules. Instrumented DAO + migration tests.
 - **Plan 3 — UI layer:** theme finalization, Navigation Compose graph, Home / Game / Stats / Settings screens + ViewModels, reusable components (`SudokuBoard`, `NumberPad`, `GameToolbar`, `MistakeCounter`, `TimerText`, `ResultSheet`), lifecycle/timer handling with `SavedStateHandle`, on-demand generation loading state, accessibility pass, edge-to-edge. Compose UI tests + ViewModel tests.
+
+---
+
+## Execution outcome (2026-09-04)
+
+**Build environment actuals** (the machine's toolchain forced these; the plan's
+floors did not survive contact):
+
+| Piece | Plan said | Actually used | Why |
+|-------|-----------|---------------|-----|
+| Gradle | 8.13 wrapper | **9.6.0** | only 9.5/9.6 cached; 9.6 needed for AGP 9 |
+| AGP | 8.13.0 | **9.3.1** | Hilt 2.57+ and Compose UI 1.12 both hard-require AGP 9 |
+| Kotlin plugin | `org.jetbrains.kotlin.android` | **built-in Kotlin** (plugin dropped) | AGP 9 ships built-in Kotlin; applying KGP too throws "extension 'kotlin' already registered" |
+| KSP source sets | n/a | `android.disallowKotlinSourceSets=false` in `gradle.properties` | KSP 2.2.10 registers generated dirs via `kotlin.sourceSets`, disallowed under built-in Kotlin |
+| Hilt | 2.56.2 | **2.60.1** | matches AGP 9 requirement |
+| Compose BOM | 2025.09.00 | **2026.08.00** | cached; newer |
+| compileSdk | 36 | **37** | Compose UI 1.12 requires it |
+| Truth | plan used Truth already; JUnit4 + MockK + Turbine as planned | same | — |
+| Launcher icon | Android Studio Image Asset | generated flat-colour PNGs + adaptive XML | no Studio in the loop; lint warns (`IconLauncherShape` etc.) — replace before release |
+| `lint` | — | added `lint { disable += "PropertyEscape" }` | machine-local `local.properties` tripped it |
+
+**Task-level deviations:**
+
+- **Task 5** (`SolverState`): reworked to **non-cascading** `place` /
+  `removeCandidate`. The plan's cascading `assign`/`eliminate` meant
+  `SolverState.from` auto-solved every naked-single chain during construction, so
+  the `NakedSingle` technique never fired and the rater under-counted. Now each
+  technique application is exactly one countable deduction; `SolutionCounter`
+  runs its own naked-single propagation loop for speed.
+- **Task 5 fixture**: the "two solutions" grid is a verified 6/7 unique-rectangle
+  (rows 0&3, cols 3&4) blanked from the classic solution, not the plan's
+  unverified string.
+- **Task 6 fixtures**: singles are tested with computed disjoint-unit
+  constructions rather than the plan's hand-wavy crafted grids.
+- **Task 7** (advanced techniques): tested by **soundness over a 40-puzzle
+  generated corpus** — a technique may never eliminate a candidate the true
+  solution needs, nor place a wrong digit — plus "each of NAKED_SINGLE,
+  HIDDEN_SINGLE, LOCKED_CANDIDATES, NAKED_SUBSET fires". Hidden-subset and X-Wing
+  are implemented and sound but not asserted-fired (random carved corpus rarely
+  needs them; add curated fixtures if fidelity in the EXPERTO/MAESTRO bands
+  proves off).
+- **Task 8** (`DifficultyRater`): no labelled CSV. Verified by **relative
+  ordering** — puzzles that need an advanced technique score above singles-only
+  ones — plus score finiteness and band/score consistency. The calibration
+  constants from the plan's table were kept as-is (`W_HARDEST=0.60`,
+  `W_FREQ=0.10`, `W_CLUES=0.80`, `RATER_CLUE_PIVOT=32`, `UNSOLVED_PENALTY=25.0`,
+  band bounds 0/12/25/40/58/78). **Not yet tuned against human-labelled
+  puzzles** — do that when a labelled set is available; it only shifts constants,
+  not structure.
+- Package renamed `SudokuApplication` -> `FreeSudokuApplication` per the app
+  name decided after the plan was written.
+
+**Files added:** as mapped, plus `app/src/test/.../solver/SolverCorpus.kt`
+(shared test corpus helper) and `techniques/Combinations.kt` (shared helper).
+No `app/src/test/resources/fixtures/` — the corpus is generated.
+
+**Follow-ups carried forward:**
+- Replace placeholder launcher icons.
+- Tune rater constants against a labelled puzzle set; add curated
+  hidden-subset / X-Wing fixtures.
+- Consider bumping deps (lint lists newer versions) once Plans 2–3 are stable.
