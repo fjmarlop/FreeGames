@@ -26,6 +26,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 @HiltViewModel
@@ -59,6 +61,22 @@ class GameViewModel @Inject constructor(
 
     private var resumed = false
     private var saveJob: Job? = null
+
+    /**
+     * Every write to the current-game row (debounced saves, and the terminal actions that
+     * complete/replace/clear it) goes through this mutex so they can never interleave — a
+     * cancelled coroutine does not necessarily stop mid-flight I/O.
+     *
+     * [canPersist] is the real guard: `false` the instant a terminal action (advance/retry/quit/
+     * finish) starts, `true` again once — if any — that action lands a fresh in-progress
+     * snapshot. Without it, leaving the result sheet reliably resurrected the just-completed
+     * game: `onFinishAndGoHome` calls `completePuzzle` (which clears the current-game row) and
+     * then pops the back stack, and popping triggers `GameScreen`'s ON_PAUSE *on this same
+     * ViewModel* before it is torn down, which calls `onPause -> flushSaveNow` — a deterministic
+     * post-clear write, not a rare timing race.
+     */
+    private val gameWriteMutex = Mutex()
+    private var canPersist = true
 
     init {
         viewModelScope.launch {
@@ -127,11 +145,15 @@ class GameViewModel @Inject constructor(
         afterMutation()
     }
 
+    /** Tracks an in-flight terminal action (advance/finish/retry/quit) so a double-tap is a no-op. */
+    private var terminalActionJob: Job? = null
+
     /** After the result sheet: record the completion and start the next campaign puzzle. */
     fun onAdvance(onReady: () -> Unit) {
-        viewModelScope.launch {
+        runTerminalAction {
             if (snapshot.status == GameStatus.COMPLETED) completePuzzle(snapshot)
             snapshot = startGame(getNextCampaignPuzzle(), settings)
+            canPersist = true // a fresh in-progress game exists again; resume normal saving
             selected = null
             render()
             onReady()
@@ -140,20 +162,47 @@ class GameViewModel @Inject constructor(
 
     /** After a FAILED game: replay the same puzzle from scratch. */
     fun onRetry() {
-        viewModelScope.launch {
+        runTerminalAction {
             snapshot = startGame(snapshot.puzzle, settings)
+            canPersist = true
             selected = null
             render()
         }
     }
 
     fun onQuitAfterFail(onExit: () -> Unit) {
-        viewModelScope.launch {
+        runTerminalAction {
             abandonGame()
             onExit()
         }
     }
 
+    /** "Volver a Home" from the result sheet: record the completion, then leave — no new game. */
+    fun onFinishAndGoHome(onExit: () -> Unit) {
+        runTerminalAction {
+            if (snapshot.status == GameStatus.COMPLETED) completePuzzle(snapshot)
+            onExit()
+        }
+    }
+
+    /**
+     * Runs a one-shot transition (advance/retry/quit/finish). Blocks any save from landing
+     * ([canPersist] = false) and cancels the pending debounced one *before* running [block]
+     * under [gameWriteMutex], so no write — in flight or queued — can interleave with it. [block]
+     * flips [canPersist] back on itself if it lands a fresh in-progress game. A second call while
+     * one is still running is a no-op, so a double-tap can't run it twice.
+     */
+    private fun runTerminalAction(block: suspend () -> Unit) {
+        if (terminalActionJob?.isActive == true) return
+        canPersist = false
+        saveJob?.cancel()
+        saveJob = null
+        terminalActionJob = viewModelScope.launch {
+            gameWriteMutex.withLock { block() }
+        }
+    }
+
+    /** Leaving mid-game (top bar "Salir"): just persist, the game stays resumable. */
     fun onExitRequested(onExit: () -> Unit) {
         flushSaveNow()
         onExit()
@@ -223,15 +272,21 @@ class GameViewModel @Inject constructor(
         saveJob?.cancel()
         saveJob = viewModelScope.launch {
             delay(1_000)
-            saveGame(current)
+            gameWriteMutex.withLock {
+                if (canPersist) saveGame(current)
+            }
         }
     }
 
     private fun flushSaveNow() {
         if (!::snapshot.isInitialized) return
-        saveJob?.cancel()
         val current = snapshot
-        appScope.launch { saveGame(current) }
+        saveJob?.cancel()
+        appScope.launch {
+            gameWriteMutex.withLock {
+                if (canPersist) saveGame(current)
+            }
+        }
     }
 
     override fun onCleared() {

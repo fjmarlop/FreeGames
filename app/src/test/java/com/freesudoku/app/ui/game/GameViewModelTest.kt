@@ -1,3 +1,5 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
 package com.freesudoku.app.ui.game
 
 import androidx.lifecycle.SavedStateHandle
@@ -25,6 +27,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -131,5 +134,127 @@ class GameViewModelTest {
 
         vm.onAdvance {}
         coVerify(exactly = 1) { complete(any()) }
+    }
+
+    @Test fun `finishing via Volver a Home also records the completion`() = runTest {
+        val complete = mockk<CompletePuzzle>(relaxed = true)
+        val vm = build(completePuzzle = complete)
+        for (i in 0 until 81) {
+            if (vm.uiState.value.cells[i].value == 0) {
+                vm.onCellTap(i)
+                vm.onNumberInput(puzzle.solution.valueAt(i / 9, i % 9))
+            }
+        }
+        assertThat(vm.uiState.value.status).isEqualTo(GameStatus.COMPLETED)
+
+        var exited = false
+        vm.onFinishAndGoHome { exited = true }
+
+        coVerify(exactly = 1) { complete(any()) }
+        assertThat(exited).isTrue()
+    }
+
+    @Test fun `finishing cancels the pending debounced save so it cannot resurrect the old game`() = runTest {
+        // Regression: a mutation schedules a 1s-debounced save; if it fires *after*
+        // onFinishAndGoHome clears the game, it silently re-inserts the completed snapshot
+        // as a "current game" (reproduced manually: Home kept offering "Continuar" on a
+        // puzzle that had already been recorded as completed).
+        val saveGame = mockk<SaveGame>(relaxed = true)
+        val complete = mockk<CompletePuzzle>(relaxed = true)
+        val vm = build(saveGame = saveGame, completePuzzle = complete)
+        for (i in 0 until 81) {
+            if (vm.uiState.value.cells[i].value == 0) {
+                vm.onCellTap(i)
+                vm.onNumberInput(puzzle.solution.valueAt(i / 9, i % 9))
+            }
+        }
+        assertThat(vm.uiState.value.status).isEqualTo(GameStatus.COMPLETED)
+
+        vm.onFinishAndGoHome {}
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { complete(any()) }
+        coVerify(exactly = 0) { saveGame(any()) }
+    }
+
+    @Test fun `onPause firing after Volver a Home does not resurrect the completed game`() = runTest {
+        // Regression (found by manual on-device testing): onFinishAndGoHome's onExit callback
+        // pops the back stack, which delivers GameScreen's ON_PAUSE to *this* ViewModel before it
+        // is torn down -> onPause() -> flushSaveNow(). That is deterministic, not a rare race, and
+        // it re-saved the just-completed (and just-cleared) snapshot as the "current game" every
+        // single time. canPersist must still be false when that flush runs.
+        val saveGame = mockk<SaveGame>(relaxed = true)
+        val complete = mockk<CompletePuzzle>(relaxed = true)
+        val vm = build(saveGame = saveGame, completePuzzle = complete)
+        for (i in 0 until 81) {
+            if (vm.uiState.value.cells[i].value == 0) {
+                vm.onCellTap(i)
+                vm.onNumberInput(puzzle.solution.valueAt(i / 9, i % 9))
+            }
+        }
+
+        vm.onFinishAndGoHome {}
+        advanceUntilIdle()
+        vm.onPause() // simulates the ON_PAUSE the exit navigation triggers
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { complete(any()) }
+        coVerify(exactly = 0) { saveGame(any()) }
+    }
+
+    @Test fun `advancing to the next puzzle resumes normal saving`() = runTest {
+        val saveGame = mockk<SaveGame>(relaxed = true)
+        val getNext = mockk<GetNextCampaignPuzzle>()
+        val startGame = mockk<StartGame>()
+        coEvery { getNext() } returns puzzle
+        coEvery { startGame(puzzle, any()) } returns freshSnapshot()
+        val vm = build(saveGame = saveGame, getNext = getNext, startGame = startGame)
+        for (i in 0 until 81) {
+            if (vm.uiState.value.cells[i].value == 0) {
+                vm.onCellTap(i)
+                vm.onNumberInput(puzzle.solution.valueAt(i / 9, i % 9))
+            }
+        }
+        vm.onAdvance {}
+        advanceUntilIdle()
+
+        // the new puzzle is a fresh in-progress game; pausing now must still persist it
+        vm.onPause()
+        advanceUntilIdle()
+
+        assertThat(vm.uiState.value.status).isEqualTo(GameStatus.IN_PROGRESS)
+        coVerify(atLeast = 1) { saveGame(any()) }
+    }
+
+    @Test fun `a second tap on Volver a Home while one is in flight is a no-op`() = runTest {
+        val complete = mockk<CompletePuzzle>()
+        // a real suspend point (not an instantly-returning relaxed mock) so the first call is
+        // still in flight when the second one lands, exercising the re-entrancy guard.
+        coEvery { complete(any()) } coAnswers { kotlinx.coroutines.delay(100) }
+        val vm = build(completePuzzle = complete)
+        for (i in 0 until 81) {
+            if (vm.uiState.value.cells[i].value == 0) {
+                vm.onCellTap(i)
+                vm.onNumberInput(puzzle.solution.valueAt(i / 9, i % 9))
+            }
+        }
+        vm.onFinishAndGoHome {}
+        vm.onFinishAndGoHome {}
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { complete(any()) }
+    }
+
+    @Test fun `leaving mid-game does not record a completion`() = runTest {
+        val complete = mockk<CompletePuzzle>(relaxed = true)
+        val vm = build(completePuzzle = complete)
+        vm.onCellTap(2)
+        vm.onNumberInput(4)
+
+        var exited = false
+        vm.onExitRequested { exited = true }
+
+        coVerify(exactly = 0) { complete(any()) }
+        assertThat(exited).isTrue()
     }
 }

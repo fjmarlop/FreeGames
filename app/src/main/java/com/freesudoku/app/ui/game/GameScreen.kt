@@ -49,7 +49,7 @@ fun GameScreen(
             onRedo = viewModel::onRedo,
             onHint = viewModel::onHint,
             onNext = { viewModel.onAdvance(onReady = {}) },
-            onHome = { viewModel.onExitRequested(onExit) },
+            onHome = { viewModel.onFinishAndGoHome(onExit) },
             onRetry = viewModel::onRetry,
             onQuitAfterFail = { viewModel.onQuitAfterFail(onExit) },
             onBack = { viewModel.onExitRequested(onExit) },
