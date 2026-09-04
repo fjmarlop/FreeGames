@@ -45,6 +45,20 @@ que el generador realmente produce. Guards + búsqueda reproducible en
   (XY-Wing, colouring, Y-Wing). Spec §10.2. **Decisión del usuario: diferido.**
 - `MigrationTest` diferido hasta que exista un esquema v2.
 
+## Bug encontrado y corregido jugando en el emulador (2026-09-04)
+
+Al completar un puzzle y volver a Home, la partida completada quedaba "resucitada"
+como partida en curso — Home seguía ofreciendo "Continuar" sobre el mismo puzzle
+en vez de avanzar. Causa raíz **determinista**: salir de la pantalla de juego
+dispara `ON_PAUSE` sobre el mismo `GameViewModel` antes de destruirlo, lo que
+volvía a guardar la partida justo después de que `CompletePuzzle` la había
+limpiado. Arreglado con un flag `canPersist` + mutex que bloquea cualquier
+escritura mientras corre una acción terminal (avanzar/reintentar/abandonar/
+terminar), documentado y con tests de regresión en `GameViewModelTest`.
+Verificado en el emulador leyendo la base Room directamente y jugando dos
+puzzles completos por los dos caminos ("Siguiente puzzle" y "Volver a Home").
+
 ## Estado
 
-Todo mergeado a `master`. MVP funcional + rater calibrado. Ver `docs/plans/*` y `docs/designs/*` para detalles y desvíos.
+Todo mergeado a `master`. MVP funcional + rater calibrado + bug de finalización
+corregido. Ver `docs/plans/*` y `docs/designs/*` para detalles y desvíos.
