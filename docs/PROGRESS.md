@@ -1,30 +1,40 @@
 # FreeSudoku — progreso (autónomo, 2026-09-04)
 
 Rama: `feat/plan-1-scaffold-domain` · todo commiteado.
+**MVP funcional end-to-end verificado en emulador (API 35).**
 
-## Hecho
+## Estado: los 3 planes completos ✅
 
-### Plan 1 — Scaffold + motor de dominio ✅ (65 tests JVM verdes, `assembleDebug` + `lintDebug` verdes)
-- Proyecto Gradle: **Gradle 9.6 + AGP 9.3.1 (Kotlin built-in) + Hilt 2.60.1 + Compose BOM 2026.08**, `compileSdk 37 / minSdk 24`.
-  (El toolchain del equipo forzó AGP 9 en vez del 8.13 que decía el plan; detalle en el doc del plan.)
-- `domain/model`: `Grid` + codec, `DifficultyBand`, `Puzzle`, `Board`, `Move`, `GameSnapshot`.
-- `domain/generator`: `FullGridGenerator` (backtracking), `PuzzleCarver` (quita pistas manteniendo solución única), `PuzzleFactory` (genera apuntando a un score objetivo).
-- `domain/solver`: `SolverState` (candidatos por bitmask), `SolutionCounter`, técnicas humanas (naked/hidden single, locked candidates, naked/hidden subsets, X-Wing), `LogicalSolver`, `DifficultyRater` (score continuo).
-- `domain/campaign`: `CampaignCurve` (curva creciente saturante + ruido determinista).
-- `domain/game`: `GameEngine` puro (jugadas, deshacer/rehacer, notas, pistas, límite de 3 errores, modo relajado, auto-borrado de notas, timer, detección de completado).
+### Plan 1 — Scaffold + motor de dominio
+Gradle 9.6 + AGP 9.3.1 (Kotlin built-in) + Hilt 2.60.1 + Compose BOM 2026.08, `compileSdk 37 / minSdk 24`.
+- `domain/model`, `domain/generator` (backtracking + carver + factory apuntando a score),
+  `domain/solver` (candidatos bitmask, técnicas humanas, rater continuo), `domain/campaign` (curva),
+  `domain/game` (GameEngine puro: jugadas, undo/redo, notas, pistas, límite de 3 errores, modo relajado, timer).
 
-### Plan 2 — Capa de datos ✅ (79 tests JVM verdes; instrumentados compilan, corriendo en emulador)
-- Room v1: `puzzle_buffer`, `current_game`, `completed_puzzle`, `campaign_progress` + DAOs + schema exportado.
-- `GameSnapshotDto`: serialización JSON de la partida en curso (round-trip testeado).
-- `SettingsRepository` sobre DataStore (5 settings, defaults).
-- Repos: `PuzzleRepository` (buffer + refill en background), `GameRepository`, `CampaignRepository`, `StatsRepository` (rachas por día).
-- Use cases: `GetNextCampaignPuzzle`, `StartGame`, `ResumeGame`, `ObserveCurrentGame`, `SaveGame`, `CompletePuzzle`, `AbandonGame`, observers.
-- Hilt: `DatabaseModule`, `SettingsModule`, `DomainModule`, `DispatchersModule`.
-- Tests instrumentados de DAOs (corriendo en emulador ahora).
+### Plan 2 — Capa de datos
+- Room v1 (4 tablas + DAOs + schema exportado), `GameSnapshotDto` JSON, `SettingsRepository` (DataStore).
+- Repos: `PuzzleRepository` (buffer + refill background), `GameRepository`, `CampaignRepository`, `StatsRepository` (rachas por día).
+- Use cases + Hilt (`DatabaseModule`, `SettingsModule`, `DomainModule`, `DispatchersModule`, `UiModule`).
 
-## Pendiente
+### Plan 3 — UI
+- Navigation Compose + tema (claro/oscuro/sistema + dynamic color).
+- Pantallas: Home (card de campaña + Continuar/Jugar), Juego (tablero, teclado con contador, toolbar, timer, errores 0/3, hoja de resultado, diálogo de derrota), Estadísticas, Ajustes.
+- `GameViewModel`: máquina de estados sobre `GameSnapshot`, guardado con debounce, `SavedStateHandle` para UI transitoria, timer inyectable (`Ticker`).
+- Componentes: `SudokuBoard` (grilla dibujada, resaltados, notas 3x3), `NumberPad`, `GameToolbar`, `GameTopStatus`, `ResultSheet`.
 
-### Plan 3 — UI (en preparación)
-Tema + Navigation Compose + pantallas Home / Juego / Estadísticas / Ajustes + ViewModels + componentes (`SudokuBoard`, `NumberPad`, toolbar, timer, contador de errores, hoja de resultado) + ciclo de vida/timer + generación on-demand con estado de carga + accesibilidad + edge-to-edge + tests de UI y de ViewModel.
+## Verificación
 
-Al terminar Plan 3: verificación completa y merge de la rama.
+- **93 tests unitarios JVM** + **9 tests instrumentados** — todos en verde.
+- `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug` — verdes (lint 0 errores).
+- Smoke manual en emulador: generar puzzle on-demand → jugar → seleccionar celda → escribir número → resaltado de iguales → contador de errores → **force-stop + reabrir → "Continuar" restaura tablero, entradas y timer**.
+
+## Bordes conocidos (no bloqueantes)
+
+- Primera generación on-demand bloquea ~1–3 s con spinner (el buffer se llena en background después).
+- Ícono de launcher es un placeholder de color plano.
+- Falta afinar los pesos del `DifficultyRater` contra un set de puzzles etiquetados por humanos (solo mueve constantes).
+- `MigrationTest` diferido hasta que exista un esquema v2.
+
+## Siguiente paso
+
+Integrar la rama (merge a `main`). Ver `docs/plans/*` para los detalles de cada plan y sus desvíos.
