@@ -1,19 +1,20 @@
 package com.freesudoku.app.ui.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,31 +23,21 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Two-line brand header shared by Home / Stats / Settings ("FreeSudoku" over an uppercase
- * section label), with an optional back arrow for the non-root screens.
+ * section label), with an optional back arrow for the non-root screens. Built on [TopAppBar] so
+ * it gets status-bar inset handling for free under edge-to-edge — a plain Surface/Row here drew
+ * straight under the status bar clock/icons.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ApexHeader(
     section: String,
     onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+    TopAppBar(
         modifier = modifier,
-    ) {
-        Row(
-            modifier = Modifier
-                .height(64.dp)
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (onBack != null) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
-                }
-            }
-            androidx.compose.foundation.layout.Column {
+        title = {
+            Column {
                 Text("FreeSudoku", style = MaterialTheme.typography.headlineSmall)
                 Text(
                     section.uppercase(),
@@ -54,8 +45,18 @@ fun ApexHeader(
                     color = MaterialTheme.colorScheme.outline,
                 )
             }
-        }
-    }
+        },
+        navigationIcon = {
+            if (onBack != null) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                }
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+    )
 }
 
 /** A small bordered tag — status pills, difficulty labels, rank markers. */

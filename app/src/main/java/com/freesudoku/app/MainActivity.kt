@@ -1,5 +1,6 @@
 package com.freesudoku.app
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,6 +21,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // Screens with a bottom NavigationBar paint their own container color edge-to-edge;
+        // without this the system adds a translucent scrim over it on API 29+.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
         setContent {
             val themeMode by appViewModel.themeMode.collectAsStateWithLifecycle()
             FreeSudokuTheme(themeMode = themeMode) {
