@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 3x3 grid glyph centered in the 72x72 safe zone -->
+    <group>
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2.5"
+            android:pathData="M38,38 h32 v32 h-32 z" />
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.5"
+            android:pathData="M48.67,38 v32 M59.33,38 v32 M38,48.67 h32 M38,59.33 h32" />
+    </group>
+</vector>

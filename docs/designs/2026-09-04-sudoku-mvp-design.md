@@ -352,6 +352,25 @@ sobrevivir recreación de proceso; la verdad del juego siempre re-lee de Room.
 9. Integración: refill de buffer en background, on-demand fallback, pulido de ciclo de vida.
 10. Pasada de tests E2E/UI, accesibilidad básica (contentDescription, tamaños de toque ≥ 48dp, contraste), edge-to-edge.
 
-## 10. Decisiones abiertas para el plan
+## 10. Valores de calibración (implementados en Plan 1)
 
-- Valores concretos de: `MIN_BUFFER`, tope de intentos de generación, pesos del `DifficultyRater`, rangos de cada `DifficultyBand`, forma exacta de `CampaignCurve.targetScore`. Se calibran durante la implementación del dominio (pasos 3–4) contra los fixtures.
+Fijados en `domain/` durante la ejecución del Plan 1. Verificados por tests de
+ordenamiento relativo, **no** contra un set de puzzles etiquetados por humanos —
+pendiente de tuning fino cuando exista ese set (solo mueve constantes, no la
+estructura).
+
+| Constante | Ubicación | Valor |
+|-----------|-----------|-------|
+| Costes de técnica | `TECHNIQUE_COST` | NakedSingle 10, HiddenSingle 15, LockedCandidates 25, NakedSubset 40, HiddenSubset 48, XWing 65 |
+| `W_HARDEST` / `W_FREQ` / `W_CLUES` | `DifficultyRater` | 0.60 / 0.10 / 0.80 |
+| `RATER_CLUE_PIVOT` | `DifficultyRater` | 32 |
+| `UNSOLVED_PENALTY` | `DifficultyRater` | 25.0 |
+| Rangos de banda (score) | `DifficultyBand` | PRINCIPIANTE 0, FACIL 12, MEDIO 25, DIFICIL 40, EXPERTO 58, MAESTRO 78 |
+| `CURVE_BASE` / `CURVE_GROWTH` / `CURVE_MAX` / `CURVE_NOISE` | `CampaignCurve` | 4.0 / 12.0 / 88.0 / 3.0 |
+| `CARVE_TOLERANCE_BASE` / `_STEP` / `_MAX` | `CampaignCurve` | 6.0 / 1.5 / 20.0 |
+| `CARVE_MAX_ATTEMPTS` | `PuzzleFactory` | 40 |
+| `MIN_BUFFER` | (Plan 2 — `PuzzleRepository`) | por definir en Plan 2 (propuesto: 5) |
+
+Ver `docs/plans/2026-09-04-freesudoku-plan-1-scaffold-and-domain.md` →
+"Execution outcome" para el detalle de desvíos de toolchain (Gradle 9.6 / AGP 9 /
+Kotlin built-in / compileSdk 37).

@@ -1,5 +1,6 @@
 .gradle/
 build/
+!gradle/wrapper/gradle-wrapper.jar
 .idea/
 *.iml
 local.properties
@@ -7,3 +8,5 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
+*.hprof
+.claude/
