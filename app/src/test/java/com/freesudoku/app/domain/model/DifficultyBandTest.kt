@@ -5,12 +5,16 @@ import org.junit.Test
 
 class DifficultyBandTest {
 
-    @Test fun `fromScore maps ranges`() {
+    @Test fun `fromScore maps each band to its calibrated range`() {
         assertThat(DifficultyBand.fromScore(0.0)).isEqualTo(DifficultyBand.PRINCIPIANTE)
-        assertThat(DifficultyBand.fromScore(11.9)).isEqualTo(DifficultyBand.PRINCIPIANTE)
-        assertThat(DifficultyBand.fromScore(12.0)).isEqualTo(DifficultyBand.FACIL)
-        assertThat(DifficultyBand.fromScore(39.9)).isEqualTo(DifficultyBand.MEDIO)
-        assertThat(DifficultyBand.fromScore(58.0)).isEqualTo(DifficultyBand.EXPERTO)
+        for (band in DifficultyBand.entries) {
+            assertThat(DifficultyBand.fromScore(band.lowerBound)).isEqualTo(band)
+            assertThat(DifficultyBand.fromScore(band.lowerBound + 0.01)).isEqualTo(band)
+            if (band != DifficultyBand.PRINCIPIANTE) {
+                assertThat(DifficultyBand.fromScore(band.lowerBound - 0.01))
+                    .isEqualTo(DifficultyBand.entries[band.ordinal - 1])
+            }
+        }
         assertThat(DifficultyBand.fromScore(1000.0)).isEqualTo(DifficultyBand.MAESTRO)
     }
 

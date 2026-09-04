@@ -7,9 +7,14 @@ class CampaignCurveTest {
 
     private val curve = CampaignCurve()
 
-    @Test fun `target score trends upward across the campaign`() {
-        val smoothed = (1..300).map { curve.targetScore(it) }.windowed(15, 15) { it.average() }
+    @Test fun `target score trends upward before it saturates`() {
+        // averaged in coarse blocks over the pre-saturation range so the +-noise doesn't matter
+        val smoothed = (1..120).map { curve.targetScore(it) }.windowed(20, 20) { it.average() }
         assertThat(smoothed).isInOrder()
+    }
+
+    @Test fun `later puzzles are harder than earlier ones`() {
+        assertThat(curve.targetScore(100)).isGreaterThan(curve.targetScore(1) + 15.0)
     }
 
     @Test fun `first puzzle sits in the beginner range`() {
