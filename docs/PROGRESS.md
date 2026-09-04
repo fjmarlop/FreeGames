@@ -28,13 +28,23 @@ Gradle 9.6 + AGP 9.3.1 (Kotlin built-in) + Hilt 2.60.1 + Compose BOM 2026.08, `c
 - `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug` — verdes (lint 0 errores).
 - Smoke manual en emulador: generar puzzle on-demand → jugar → seleccionar celda → escribir número → resaltado de iguales → contador de errores → **force-stop + reabrir → "Continuar" restaura tablero, entradas y timer**.
 
+## Calibración del rater (hecha, mergeada)
+
+`DifficultyRater` ajustado contra **510 puzzles reales rankeados** (sudoku-exchange
+puzzle bank). **Spearman ρ = 0.86** vs rating humano; banda predicha de cada puzzle
+a ≤1 de su objetivo. Pesos, bandas y `CampaignCurve` re-anclados al rango de score
+que el generador realmente produce. Guards + búsqueda reproducible en
+`RaterCalibrationTest`. Detalle en spec §10.
+
 ## Bordes conocidos (no bloqueantes)
 
 - Primera generación on-demand bloquea ~1–3 s con spinner (el buffer se llena en background después).
 - Ícono de launcher es un placeholder de color plano.
-- Falta afinar los pesos del `DifficultyRater` contra un set de puzzles etiquetados por humanos (solo mueve constantes).
+- **Hueco de dificultad media-alta**: el solver del MVP llega hasta X-Wing → distribución bimodal
+  de dificultad, poca cobertura en el rango DIFICIL. Fix real = agregar técnicas al solver
+  (XY-Wing, colouring, Y-Wing). Spec §10.2. **Decisión del usuario: diferido.**
 - `MigrationTest` diferido hasta que exista un esquema v2.
 
-## Siguiente paso
+## Estado
 
-Integrar la rama (merge a `main`). Ver `docs/plans/*` para los detalles de cada plan y sus desvíos.
+Todo mergeado a `master`. MVP funcional + rater calibrado. Ver `docs/plans/*` y `docs/designs/*` para detalles y desvíos.
