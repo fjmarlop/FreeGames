@@ -200,3 +200,38 @@ data class CellUi(
 - **§8.1 VM tests / §8.3 UI tests** — Tasks 4, 6, 7 ✅.
 - **Accessibility** (§10 delivery step): contentDescription + 48dp targets called out per component; add a `testTag`s pass.
 - **Placeholder scan**: screen composition details ("a card", "a bar row") are deliberately left to implementation taste — no fake values, no TODOs in logic. Board rendering + VM state machine (the only real complexity) are spelled out.
+
+---
+
+## Execution outcome (2026-09-04)
+
+**STATUS: COMPLETE.** Branch `feat/plan-1-scaffold-domain`. 93 JVM tests + 9
+instrumented tests green; `assembleDebug` / `lintDebug` green. Manual smoke on
+API-35 emulator: on-demand generation, cell select + input, same-value
+highlight, remaining-per-digit counts, mistake counter, timer, force-stop →
+"Continuar" → board + timer + entries all restored.
+
+**Deviations:**
+- **Timer**: extracted behind a `Ticker` fun-interface (`RealTicker` +
+  `di/UiModule` `@Binds`) instead of an in-VM `while+delay` loop — makes
+  `GameViewModel` testable without virtual-clock fighting.
+- **Icons**: no `material-icons-extended` dependency; top-bar actions are
+  `TextButton`s ("Estadísticas"/"Ajustes", "Salir", "Atrás") — accessible and
+  keeps the APK smaller.
+- **HomeUiState.currentBand** is populated from the resumable game's puzzle
+  (campaign progress carries only a number), shown as "—" when there is no
+  in-progress game.
+- Screens are split stateful (`HomeScreen`/`GameScreen`) + stateless
+  (`HomeContent`/`GameContent`/`StatsContent`/`SettingsContent`); Compose tests
+  drive the stateless halves — no Hilt test graph needed.
+- No `@HiltAndroidTest` end-to-end test (the stateless UI tests + manual smoke
+  cover it); add one if regressions appear.
+- Extra files: `ui/common/BandLabels.kt`, `ui/game/Ticker.kt`, `di/UiModule.kt`,
+  `util/MainDispatcherRule.kt` (test).
+
+**Known rough edges (not blockers):**
+- On-demand first puzzle generation blocks ~1–3 s with a spinner (buffer empties
+  on first run; background refill fills it after). Acceptable; could pre-warm on
+  first launch.
+- Placeholder launcher icon (flat colour).
+- Board sizing is generous; could tighten vertical rhythm on small screens.
