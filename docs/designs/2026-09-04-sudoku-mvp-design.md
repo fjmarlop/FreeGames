@@ -1,8 +1,10 @@
-# Sudoku MVP — Design Spec
+# FreeSudoku MVP — Design Spec
 
 - **Fecha:** 2026-09-04
-- **Estado:** Aprobado (pendiente review del spec escrito)
+- **Estado:** Aprobado
 - **Plataforma:** Android (única)
+- **Nombre de la app:** FreeSudoku
+- **applicationId / namespace:** `com.freesudoku.app`
 
 ## 1. Objetivo
 
@@ -52,8 +54,8 @@ El MVP entrega:
 ### Estructura de paquetes
 
 ```
-com.<org>.sudoku
-├── SudokuApplication.kt
+com.freesudoku.app
+├── FreeSudokuApplication.kt
 ├── di/                # módulos Hilt
 ├── domain/
 │   ├── model/
@@ -352,6 +354,4 @@ sobrevivir recreación de proceso; la verdad del juego siempre re-lee de Room.
 
 ## 10. Decisiones abiertas para el plan
 
-- `applicationId` / nombre de paquete definitivo (placeholder `com.example.sudoku` hasta que se defina).
-- Nombre visible de la app.
 - Valores concretos de: `MIN_BUFFER`, tope de intentos de generación, pesos del `DifficultyRater`, rangos de cada `DifficultyBand`, forma exacta de `CampaignCurve.targetScore`. Se calibran durante la implementación del dominio (pasos 3–4) contra los fixtures.
