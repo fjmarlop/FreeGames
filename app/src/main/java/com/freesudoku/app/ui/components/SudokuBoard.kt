@@ -14,7 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -41,7 +41,10 @@ fun SudokuBoard(
             .fillMaxWidth()
             .aspectRatio(1f)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .drawBehind {
+            // Drawn *after* the cells (drawWithContent, not drawBehind) so the grid stays crisp
+            // and unbroken even where a cell underneath is tinted for selection/highlighting.
+            .drawWithContent {
+                drawContent()
                 val step = size.width / 9f
                 for (i in 0..9) {
                     val strokePx = if (i % 3 == 0) 2.5.dp.toPx() else 1.dp.toPx()
@@ -83,10 +86,12 @@ private fun CellView(
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
+    // One hue (primary), graduated by alpha, so selection reads as a soft tint rather than a
+    // block of flat color — and low enough that it never fights the grid lines drawn on top.
     val background = when {
-        cell.selected -> scheme.primaryContainer.copy(alpha = 0.35f)
-        cell.sameValueAsSelection -> scheme.primaryContainer.copy(alpha = 0.20f)
-        cell.inSelectionScope -> scheme.surfaceContainerHigh
+        cell.selected -> scheme.primary.copy(alpha = 0.28f)
+        cell.sameValueAsSelection -> scheme.primary.copy(alpha = 0.14f)
+        cell.inSelectionScope -> scheme.primary.copy(alpha = 0.06f)
         else -> Color.Transparent
     }
     val textColor = when {
