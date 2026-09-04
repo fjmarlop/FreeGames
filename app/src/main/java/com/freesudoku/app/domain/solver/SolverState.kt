@@ -5,6 +5,10 @@ import com.freesudoku.app.domain.model.Grid
 /**
  * Mutable candidate model used while solving. [values] holds fixed digits (0 = empty).
  * [candidates] is a bitmask per cell; bit (d-1) set means digit d is still possible there.
+ *
+ * Placements and eliminations here are **non-cascading** on purpose: each solving technique
+ * performs exactly one logical deduction so the difficulty rater can count steps faithfully.
+ * Constraint propagation, when wanted, is the caller's loop (see [SolutionCounter]).
  */
 class SolverState private constructor(
     val values: IntArray,
@@ -19,33 +23,26 @@ class SolverState private constructor(
 
     fun candidateCount(index: Int): Int = Integer.bitCount(candidates[index])
 
-    /** Assigns [digit] to [index], propagating eliminations. Returns false on contradiction. */
-    fun assign(index: Int, digit: Int): Boolean {
-        for (d in candidateList(index)) {
-            if (d != digit && !eliminate(index, d)) return false
-        }
+    /** Places [digit] at [index] and strips it from every peer's candidates. No cascade. */
+    fun place(index: Int, digit: Int) {
+        values[index] = digit
+        candidates[index] = 1 shl (digit - 1)
+        val bit = (1 shl (digit - 1)).inv()
+        for (p in PEERS[index]) if (values[p] == 0) candidates[p] = candidates[p] and bit
+    }
+
+    /** Removes [digit] from [index]'s candidates. Returns true if something changed. No cascade. */
+    fun removeCandidate(index: Int, digit: Int): Boolean {
+        val bit = 1 shl (digit - 1)
+        if (candidates[index] and bit == 0) return false
+        candidates[index] = candidates[index] and bit.inv()
         return true
     }
 
-    /** Removes [digit] from [index]'s candidates, cascading singles to peers. False on contradiction. */
-    fun eliminate(index: Int, digit: Int): Boolean {
-        val bit = 1 shl (digit - 1)
-        if (candidates[index] and bit == 0) return true
-        candidates[index] = candidates[index] and bit.inv()
-        return when (candidateCount(index)) {
-            0 -> false
-            1 -> {
-                val last = candidateList(index).first()
-                place(index, last)
-                PEERS[index].all { eliminate(it, last) }
-            }
-            else -> true
-        }
-    }
-
-    private fun place(index: Int, digit: Int) {
-        values[index] = digit
-        candidates[index] = 1 shl (digit - 1)
+    /** True if any empty cell has no candidates left. */
+    fun hasContradiction(): Boolean {
+        for (i in 0 until 81) if (values[i] == 0 && candidates[i] == 0) return true
+        return false
     }
 
     fun toGrid(): Grid = Grid.of(values)
@@ -66,7 +63,7 @@ class SolverState private constructor(
             set.toIntArray()
         }
 
-        /** All 27 units (9 rows, 9 columns, 9 boxes). Rows are [0,8], columns [9,17], boxes [18,26]. */
+        /** All 27 units: rows at [0,8], columns at [9,17], boxes at [18,26]. */
         val UNITS: Array<IntArray> = buildList {
             for (r in 0 until 9) add(IntArray(9) { r * 9 + it })
             for (c in 0 until 9) add(IntArray(9) { it * 9 + c })
@@ -77,8 +74,15 @@ class SolverState private constructor(
             }
         }.toTypedArray()
 
+        val BOXES: Array<IntArray> = Array(9) { b ->
+            val br = (b / 3) * 3
+            val bc = (b % 3) * 3
+            IntArray(9) { k -> (br + k / 3) * 9 + (bc + k % 3) }
+        }
+
         fun peers(index: Int): IntArray = PEERS[index]
 
+        /** Builds a state from givens with candidates reduced by direct peer constraints only. */
         fun from(grid: Grid): SolverState? {
             val state = SolverState(IntArray(81), IntArray(81) { 0x1FF })
             for (i in 0 until 81) {
@@ -88,11 +92,7 @@ class SolverState private constructor(
                     state.place(i, v)
                 }
             }
-            for (i in 0 until 81) {
-                val v = state.values[i]
-                if (v != 0 && !PEERS[i].all { state.eliminate(it, v) }) return null
-            }
-            return state
+            return if (state.hasContradiction()) null else state
         }
     }
 }

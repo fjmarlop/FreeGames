@@ -20,11 +20,14 @@ class SolutionCounter {
     }
 
     private fun search(state: SolverState, limit: Int, count: IntArray, capture: Array<Grid?>?): Int {
+        if (!propagate(state)) return count[0]
+
         if (state.isSolved()) {
             count[0]++
             if (capture != null && capture[0] == null) capture[0] = state.toGrid()
             return count[0]
         }
+
         var best = -1
         var bestCount = 10
         for (i in 0 until 81) {
@@ -33,18 +36,38 @@ class SolutionCounter {
                 if (c < bestCount) {
                     bestCount = c
                     best = i
-                    if (c <= 1) break
+                    if (c == 2) break
                 }
             }
         }
         if (best == -1 || bestCount == 0) return count[0]
+
         for (d in state.candidateList(best)) {
             val branch = state.copy()
-            if (branch.assign(best, d)) {
-                search(branch, limit, count, capture)
-                if (count[0] >= limit) return count[0]
-            }
+            branch.place(best, d)
+            search(branch, limit, count, capture)
+            if (count[0] >= limit) return count[0]
         }
         return count[0]
+    }
+
+    /** Repeatedly places naked singles. Returns false on contradiction. */
+    private fun propagate(state: SolverState): Boolean {
+        var changed = true
+        while (changed) {
+            changed = false
+            for (i in 0 until 81) {
+                if (state.values[i] == 0) {
+                    when (state.candidateCount(i)) {
+                        0 -> return false
+                        1 -> {
+                            state.place(i, state.candidateList(i).first())
+                            changed = true
+                        }
+                    }
+                }
+            }
+        }
+        return true
     }
 }
