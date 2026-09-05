@@ -103,8 +103,28 @@ Aplicado a las 4 pantallas existentes sin tocar la lógica de negocio:
 113 tests unitarios + 9 instrumentados en verde, lint limpio. Verificado en el
 emulador en claro y oscuro, las 4 pantallas.
 
+## Botón "Reiniciar" en partida (2026-09-05)
+
+Se agregó un botón "Reiniciar" en la barra superior de la pantalla de juego
+(visible sólo con la partida en curso). Con diálogo de confirmación.
+
+Primera versión: reiniciaba el **mismo** puzzle. Segunda petición del usuario:
+que genere un **puzzle nuevo del mismo nivel**. `GameViewModel.onRestart()` toma
+el puzzle de `getNextCampaignPuzzle()` (el puntero de campaña no avanzó, así que
+devuelve una instancia nueva para el número actual) en vez de `snapshot.puzzle`.
+La campaña no avanza y no se registra nada. El diálogo de derrota "Reintentar"
+queda igual (mismo puzzle) — decisión del usuario.
+
+Spec/plan: `docs/designs/2026-09-05-restart-generates-new-puzzle-design.md`,
+`docs/plans/2026-09-05-restart-generates-new-puzzle.md`.
+
+115 tests unitarios + 11 instrumentados en verde, lint sin hallazgos nuevos.
+Verificado end-to-end en el emulador (API 35): el reinicio genera givens
+distintos, mantiene el número de puzzle, resetea timer y errores.
+
 ## Estado
 
 Todo mergeado a `master`. MVP funcional + rater calibrado + bug de finalización
 corregido + límite de errores confirmado por el usuario + reskin visual
-aplicado. Ver `docs/plans/*` y `docs/designs/*` para detalles y desvíos.
+aplicado + botón "Reiniciar" (genera puzzle nuevo). Ver `docs/plans/*` y
+`docs/designs/*` para detalles y desvíos.
