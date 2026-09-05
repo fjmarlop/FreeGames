@@ -64,6 +64,7 @@ fun GameScreen(
             onNext = { viewModel.onAdvance(onReady = {}) },
             onHome = { viewModel.onFinishAndGoHome(onExit) },
             onRetry = viewModel::onRetry,
+            onRestart = viewModel::onRestart,
             onQuitAfterFail = { viewModel.onQuitAfterFail(onExit) },
             onBack = { viewModel.onExitRequested(onExit) },
         ),
@@ -81,6 +82,7 @@ data class GameCallbacks(
     val onNext: () -> Unit,
     val onHome: () -> Unit,
     val onRetry: () -> Unit,
+    val onRestart: () -> Unit,
     val onQuitAfterFail: () -> Unit,
     val onBack: () -> Unit,
 )
@@ -174,15 +176,15 @@ fun GameContent(
                 title = { Text("Reiniciar puzzle") },
                 text = {
                     Text(
-                        "Perderás las respuestas de este intento. El tiempo y los errores " +
-                            "vuelven a cero, pero es el mismo puzzle #${state.puzzleNumber}.",
+                        "Se genera un puzzle nuevo del mismo nivel. El tiempo y los errores " +
+                            "vuelven a cero y pierdes lo resuelto hasta ahora.",
                     )
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
                             showRestartConfirm = false
-                            callbacks.onRetry()
+                            callbacks.onRestart()
                         },
                     ) { Text("Reiniciar") }
                 },

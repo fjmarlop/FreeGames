@@ -31,7 +31,7 @@ class GameContentTest {
         onCellTap = onCellTap,
         onNumberInput = onNumberInput,
         onErase = {}, onToggleNotes = {}, onUndo = {}, onRedo = {}, onHint = {},
-        onNext = {}, onHome = {}, onRetry = {}, onQuitAfterFail = {}, onBack = {},
+        onNext = {}, onHome = {}, onRetry = {}, onRestart = {}, onQuitAfterFail = {}, onBack = {},
     )
 
     @Test fun tapping_a_cell_then_a_pad_digit_fires_callbacks() {
@@ -71,26 +71,26 @@ class GameContentTest {
     }
 
     @Test fun restart_action_asks_for_confirmation_before_calling_back() {
-        var retried = false
+        var restarted = false
         composeRule.setContent {
             FreeSudokuTheme {
                 GameContent(
                     state = GameUiState(loading = false, cells = cells(), puzzleNumber = 3),
-                    callbacks = noopCallbacks().copy(onRetry = { retried = true }),
+                    callbacks = noopCallbacks().copy(onRestart = { restarted = true }),
                 )
             }
         }
 
         composeRule.onNodeWithContentDescription("Reiniciar puzzle").performClick()
         composeRule.onNodeWithText("Reiniciar puzzle").assertIsDisplayed()
-        assertThat(retried).isFalse() // the dialog must not act until confirmed
+        assertThat(restarted).isFalse() // the dialog must not act until confirmed
 
         composeRule.onNodeWithText("Cancelar").performClick()
-        assertThat(retried).isFalse()
+        assertThat(restarted).isFalse()
 
         composeRule.onNodeWithContentDescription("Reiniciar puzzle").performClick()
         composeRule.onNodeWithText("Reiniciar").performClick()
-        assertThat(retried).isTrue()
+        assertThat(restarted).isTrue()
     }
 
     @Test fun restart_action_is_hidden_once_the_puzzle_is_over() {
