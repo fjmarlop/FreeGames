@@ -161,13 +161,28 @@ class GameViewModel @Inject constructor(
     }
 
     /**
-     * Restarts the current puzzle from scratch: same givens/solution, but a clean board, timer,
-     * mistake count and undo/redo history. Used both after a FAILED game and from the in-game
-     * "Reiniciar" action (with a confirmation dialog — this itself does not ask).
+     * Reintenta el MISMO puzzle desde cero (mismos givens/solución, tablero/timer/errores/historial
+     * limpios). Usada sólo por el diálogo de derrota ("Reintentar").
      */
     fun onRetry() {
         runTerminalAction {
             snapshot = startGame(snapshot.puzzle, settings)
+            canPersist = true
+            selected = null
+            render()
+        }
+    }
+
+    /**
+     * "Reiniciar" en partida en curso: descarta el intento y arranca un puzzle NUEVO del mismo
+     * nivel de campaña (mismo target de dificultad). No avanza la campaña ni registra nada — el
+     * puntero de campaña no se movió, así que [getNextCampaignPuzzle] devuelve una instancia
+     * nueva para el número actual. El diálogo de confirmación vive en la UI.
+     */
+    fun onRestart() {
+        runTerminalAction {
+            _uiState.value = _uiState.value.copy(loading = true)
+            snapshot = startGame(getNextCampaignPuzzle(), settings)
             canPersist = true
             selected = null
             render()

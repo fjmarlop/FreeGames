@@ -43,6 +43,13 @@ class GameViewModelTest {
         14.0, DifficultyBand.FACIL,
     )
 
+    private val puzzle2 = Puzzle(
+        "p2", 5,
+        GridCodec.decode("504070902070105040108040507050701020406050701010904050901030204080409030305080109"),
+        GridCodec.decode("534678912672195348198342567859761423426853791713924856961537284287419635345286179"),
+        14.5, DifficultyBand.FACIL,
+    )
+
     private fun freshSnapshot(limit: Boolean = true) = GameSnapshot(
         puzzle, Board.fromGivens(puzzle.givens), emptyList(), emptyList(),
         elapsedMs = 0, mistakes = 0, hintsUsed = 0,
@@ -136,6 +143,32 @@ class GameViewModelTest {
         advanceUntilIdle()
 
         coVerify(exactly = 1) { startGame(puzzle, any()) }
+        assertThat(vm.uiState.value.mistakes).isEqualTo(0)
+        assertThat(vm.uiState.value.status).isEqualTo(GameStatus.IN_PROGRESS)
+        assertThat(vm.uiState.value.canUndo).isFalse()
+        assertThat(vm.uiState.value.cells[2].value).isEqualTo(0)
+    }
+
+    @Test fun `onRestart swaps in a brand-new campaign puzzle without advancing`() = runTest {
+        val getNext = mockk<GetNextCampaignPuzzle>()
+        val startGame = mockk<StartGame>()
+        val complete = mockk<CompletePuzzle>(relaxed = true)
+        coEvery { getNext() } returns puzzle2
+        coEvery { startGame(puzzle2, any()) } returns freshSnapshot().copy(puzzle = puzzle2)
+        val vm = build(getNext = getNext, startGame = startGame, completePuzzle = complete)
+
+        vm.onCellTap(2)
+        vm.onNumberInput(4) // correct
+        vm.onCellTap(3)
+        vm.onNumberInput(9) // wrong -> a mistake
+        assertThat(vm.uiState.value.mistakes).isEqualTo(1)
+
+        vm.onRestart()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { getNext() }
+        coVerify(exactly = 1) { startGame(puzzle2, any()) }
+        coVerify(exactly = 0) { complete(any()) } // restarting is not completing; campaign stays put
         assertThat(vm.uiState.value.mistakes).isEqualTo(0)
         assertThat(vm.uiState.value.status).isEqualTo(GameStatus.IN_PROGRESS)
         assertThat(vm.uiState.value.canUndo).isFalse()
