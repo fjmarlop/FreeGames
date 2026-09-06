@@ -15,3 +15,5 @@ captures/
 *.jks
 *.keystore
 keystore.properties
+*.b64
+*.b64.txt
