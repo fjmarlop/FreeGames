@@ -1,0 +1,125 @@
+name: release
+
+# Se dispara al empujar un tag con formato <juego>-vX.Y.Z (ej: sudoku-v1.0.0).
+on:
+  push:
+    tags:
+      - '*-v*.*.*'
+
+# Necesario para que la acción de release pueda crear el Release y subir assets.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Parsear el tag
+        id: tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          GAME="${TAG%%-v*}"       # todo lo anterior a "-v"
+          VERSION="${TAG#*-v}"     # todo lo posterior a "-v"
+          if [ -z "$GAME" ] || [ -z "$VERSION" ] || [ "$GAME" = "$TAG" ]; then
+            echo "::error::El tag '$TAG' no cumple el formato <juego>-vX.Y.Z"
+            exit 1
+          fi
+          echo "game=$GAME"       >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Juego: $GAME · Versión: $VERSION"
+
+      - uses: actions/checkout@v4
+
+      - name: Comprobar que el módulo del juego existe
+        run: |
+          MODULE="games/${{ steps.tag.outputs.game }}"
+          test -f "$MODULE/build.gradle.kts" \
+            || { echo "::error::No existe el módulo $MODULE"; exit 1; }
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle (con cache)
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decodificar el keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Falta el secret KEYSTORE_BASE64"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - name: Análisis de seguridad (OWASP Mobile Top 10, si el plugin está disponible)
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          GAME="${{ steps.tag.outputs.game }}"
+          if ./gradlew ":games:$GAME:tasks" --all 2>/dev/null | grep -qw "securityCheck"; then
+            echo "Tarea securityCheck detectada — ejecutando antes del release."
+            ./gradlew ":games:$GAME:securityCheck"
+          else
+            echo "::warning::La tarea 'securityCheck' no está aplicada al módulo :games:$GAME. \
+            Se omite el análisis OWASP Mobile Top 10. Actívalo añadiendo el plugin al build del \
+            juego cuando esté publicado; este workflow lo ejecutará y abortará el release si falla."
+          fi
+
+      - name: Compilar el APK release del juego
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          GAME="${{ steps.tag.outputs.game }}"
+          ./gradlew ":games:$GAME:assembleRelease" \
+            -PversionName="${{ steps.tag.outputs.version }}"
+
+      - name: Localizar el APK y calcular el SHA256
+        id: apk
+        run: |
+          GAME="${{ steps.tag.outputs.game }}"
+          VERSION="${{ steps.tag.outputs.version }}"
+          SRC=$(find "games/$GAME/build/outputs/apk/release" -name '*.apk' ! -name '*unsigned*' | head -1)
+          if [ -z "$SRC" ]; then
+            echo "::error::No se encontró un APK release firmado (¿faltan credenciales de firma?)"
+            exit 1
+          fi
+          APK="${GAME}-v${VERSION}.apk"
+          cp "$SRC" "$APK"
+          sha256sum "$APK" > "$APK.sha256"   # formato "<hash>  <fichero>", verificable con: sha256sum -c
+          HASH=$(awk '{print $1}' "$APK.sha256")
+          echo "apk=$APK"     >> "$GITHUB_OUTPUT"
+          echo "sha256=$HASH" >> "$GITHUB_OUTPUT"
+          echo "APK:    $APK"
+          echo "SHA256: $HASH"
+
+      - name: Crear el GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ steps.tag.outputs.game }} v${{ steps.tag.outputs.version }}
+          files: |
+            ${{ steps.apk.outputs.apk }}
+            ${{ steps.apk.outputs.apk }}.sha256
+          body: |
+            APK firmada, sin permisos de red, código abierto. Verifica el hash antes de instalar.
+
+            **SHA256 `${{ steps.apk.outputs.apk }}`**
+            ```
+            ${{ steps.apk.outputs.sha256 }}
+            ```
+            ```bash
+            sha256sum -c ${{ steps.apk.outputs.apk }}.sha256
+            ```
+
+      - name: Borrar el keystore temporal
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"

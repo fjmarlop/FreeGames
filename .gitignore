@@ -10,3 +10,8 @@ captures/
 .cxx/
 *.hprof
 .claude/
+
+# Signing material — never commit keystores or decoded credentials
+*.jks
+*.keystore
+keystore.properties
