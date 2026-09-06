@@ -236,3 +236,15 @@ juegos. Para verlo en acción:
 ```bash
 ./gradlew :games:sudoku:verifyReleasePermissions
 ```
+
+---
+
+## CI
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) corre `./gradlew check` (tests
+unitarios + lint + el guard de permisos) en cada push a `master` y en cada pull request.
+No necesita secretos.
+
+## Licencia
+
+[Apache License 2.0](LICENSE).
