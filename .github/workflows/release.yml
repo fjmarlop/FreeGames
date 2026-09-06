@@ -29,7 +29,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Juego: $GAME · Versión: $VERSION"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Comprobar que el módulo del juego existe
         run: |
@@ -37,13 +37,13 @@ jobs:
           test -f "$MODULE/build.gradle.kts" \
             || { echo "::error::No existe el módulo $MODULE"; exit 1; }
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Setup Gradle (con cache)
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Decodificar el keystore
         env:
@@ -102,7 +102,7 @@ jobs:
           echo "SHA256: $HASH"
 
       - name: Crear el GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ steps.tag.outputs.game }} v${{ steps.tag.outputs.version }}
