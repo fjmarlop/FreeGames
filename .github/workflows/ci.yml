@@ -1,0 +1,32 @@
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      # `check` de cada juego = tests unitarios + lint + verify<Variant>Permissions
+      # (el guard que aborta si el manifest fusionado declara INTERNET u otro permiso peligroso).
+      # No necesita credenciales de firma.
+      - name: Check
+        run: ./gradlew check --stacktrace
