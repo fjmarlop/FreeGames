@@ -105,6 +105,32 @@ class GameContentTest {
         composeRule.onAllNodesWithContentDescription("Reiniciar puzzle").assertCountEquals(0)
     }
 
+    @Test fun a_null_puzzle_number_shows_the_quick_play_chip_instead_of_a_number() {
+        composeRule.setContent {
+            FreeSudokuTheme {
+                GameContent(
+                    state = GameUiState(loading = false, cells = cells(), puzzleNumber = null),
+                    callbacks = noopCallbacks(),
+                )
+            }
+        }
+        composeRule.onNodeWithText("Partida rápida").assertIsDisplayed()
+    }
+
+    @Test fun completing_a_quick_play_puzzle_offers_another_one_of_the_same_band() {
+        composeRule.setContent {
+            FreeSudokuTheme {
+                GameContent(
+                    state = GameUiState(
+                        loading = false, cells = cells(), status = GameStatus.COMPLETED, puzzleNumber = null,
+                    ),
+                    callbacks = noopCallbacks(),
+                )
+            }
+        }
+        composeRule.onNodeWithText("Otro puzzle rápido").assertIsDisplayed()
+    }
+
     @Test fun failed_status_shows_the_dialog() {
         composeRule.setContent {
             FreeSudokuTheme {

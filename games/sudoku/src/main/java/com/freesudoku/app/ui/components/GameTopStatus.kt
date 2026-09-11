@@ -20,7 +20,7 @@ import com.freesudoku.app.ui.game.GameUiState
 
 @Composable
 fun GameTopStatus(
-    puzzleNumber: Int,
+    puzzleNumber: Int?,
     elapsedText: String,
     mistakes: Int,
     mistakeLimitEnabled: Boolean,
@@ -32,7 +32,7 @@ fun GameTopStatus(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ApexChip(text = "Puzzle #$puzzleNumber")
+        ApexChip(text = if (puzzleNumber != null) "Puzzle #$puzzleNumber" else "Partida rápida")
         if (mistakeLimitEnabled) {
             Lives(mistakes = mistakes, modifier = Modifier.testTag("mistake_counter"))
         } else {

@@ -14,6 +14,7 @@ import com.freesudoku.app.domain.model.Puzzle
 import com.freesudoku.app.domain.usecase.AbandonGame
 import com.freesudoku.app.domain.usecase.CompletePuzzle
 import com.freesudoku.app.domain.usecase.GetNextCampaignPuzzle
+import com.freesudoku.app.domain.usecase.GetPuzzleForBand
 import com.freesudoku.app.domain.usecase.ResumeGame
 import com.freesudoku.app.domain.usecase.SaveGame
 import com.freesudoku.app.domain.usecase.StartGame
@@ -62,6 +63,7 @@ class GameViewModelTest {
         completePuzzle: CompletePuzzle = mockk(relaxed = true),
         startGame: StartGame = mockk(relaxed = true),
         getNext: GetNextCampaignPuzzle = mockk(relaxed = true),
+        getPuzzleForBand: GetPuzzleForBand = mockk(relaxed = true),
     ): GameViewModel {
         val resumeGame = mockk<ResumeGame>()
         coEvery { resumeGame() } returns resume
@@ -70,6 +72,7 @@ class GameViewModelTest {
         return GameViewModel(
             resumeGame = resumeGame,
             getNextCampaignPuzzle = getNext,
+            getPuzzleForBand = getPuzzleForBand,
             startGame = startGame,
             saveGame = saveGame,
             completePuzzle = completePuzzle,
@@ -173,6 +176,62 @@ class GameViewModelTest {
         assertThat(vm.uiState.value.status).isEqualTo(GameStatus.IN_PROGRESS)
         assertThat(vm.uiState.value.canUndo).isFalse()
         assertThat(vm.uiState.value.cells[2].value).isEqualTo(0)
+    }
+
+    @Test fun `a quick-play snapshot has no puzzle number and restart asks for the same band`() = runTest {
+        val quickPuzzle = puzzle.copy(id = "q", number = null)
+        val getPuzzleForBand = mockk<GetPuzzleForBand>()
+        val getNext = mockk<GetNextCampaignPuzzle>(relaxed = true)
+        val startGame = mockk<StartGame>()
+        coEvery { getPuzzleForBand(DifficultyBand.FACIL) } returns quickPuzzle
+        coEvery { startGame(quickPuzzle, any()) } returns freshSnapshot().copy(puzzle = quickPuzzle)
+        val vm = build(
+            resume = freshSnapshot().copy(puzzle = quickPuzzle),
+            getNext = getNext,
+            getPuzzleForBand = getPuzzleForBand,
+            startGame = startGame,
+        )
+
+        assertThat(vm.uiState.value.puzzleNumber).isNull()
+
+        vm.onRestart()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { getPuzzleForBand(DifficultyBand.FACIL) }
+        coVerify(exactly = 0) { getNext() }
+        assertThat(vm.uiState.value.puzzleNumber).isNull()
+    }
+
+    @Test fun `advancing after a quick-play completion asks for another puzzle of the same band, not the campaign`() = runTest {
+        val quickPuzzle = puzzle.copy(id = "q", number = null)
+        val nextQuickPuzzle = puzzle.copy(id = "q2", number = null)
+        val getPuzzleForBand = mockk<GetPuzzleForBand>()
+        val getNext = mockk<GetNextCampaignPuzzle>(relaxed = true)
+        val complete = mockk<CompletePuzzle>(relaxed = true)
+        val startGame = mockk<StartGame>()
+        coEvery { getPuzzleForBand(DifficultyBand.FACIL) } returns nextQuickPuzzle
+        coEvery { startGame(nextQuickPuzzle, any()) } returns freshSnapshot().copy(puzzle = nextQuickPuzzle)
+        val vm = build(
+            resume = freshSnapshot().copy(puzzle = quickPuzzle),
+            getNext = getNext,
+            getPuzzleForBand = getPuzzleForBand,
+            completePuzzle = complete,
+            startGame = startGame,
+        )
+        for (i in 0 until 81) {
+            if (vm.uiState.value.cells[i].value == 0) {
+                vm.onCellTap(i)
+                vm.onNumberInput(quickPuzzle.solution.valueAt(i / 9, i % 9))
+            }
+        }
+        assertThat(vm.uiState.value.status).isEqualTo(GameStatus.COMPLETED)
+
+        vm.onAdvance {}
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { complete(any()) }
+        coVerify(exactly = 1) { getPuzzleForBand(DifficultyBand.FACIL) }
+        coVerify(exactly = 0) { getNext() }
     }
 
     @Test fun `completing the board marks COMPLETED but does not record until advance`() = runTest {

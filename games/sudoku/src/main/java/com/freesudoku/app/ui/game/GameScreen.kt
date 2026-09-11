@@ -165,6 +165,7 @@ fun GameContent(
                 elapsedMsText = state.elapsedText,
                 mistakes = state.mistakes,
                 hintsUsed = state.hintsUsed,
+                isQuickPlay = state.puzzleNumber == null,
                 onNext = callbacks.onNext,
                 onHome = callbacks.onHome,
             )

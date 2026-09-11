@@ -25,7 +25,8 @@ data class GameUiState(
     val remainingPerDigit: Map<Int, Int> = emptyMap(),
     val canUndo: Boolean = false,
     val canRedo: Boolean = false,
-    val puzzleNumber: Int = 0,
+    /** Null for "Partida rápida" — the puzzle has no campaign position. */
+    val puzzleNumber: Int? = null,
     val hintsUsed: Int = 0,
     val band: DifficultyBand? = null,
 ) {

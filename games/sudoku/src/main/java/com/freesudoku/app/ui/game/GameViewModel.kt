@@ -10,9 +10,11 @@ import com.freesudoku.app.domain.game.GameEngine
 import com.freesudoku.app.domain.model.Grid
 import com.freesudoku.app.domain.model.GameSnapshot
 import com.freesudoku.app.domain.model.GameStatus
+import com.freesudoku.app.domain.model.Puzzle
 import com.freesudoku.app.domain.usecase.AbandonGame
 import com.freesudoku.app.domain.usecase.CompletePuzzle
 import com.freesudoku.app.domain.usecase.GetNextCampaignPuzzle
+import com.freesudoku.app.domain.usecase.GetPuzzleForBand
 import com.freesudoku.app.domain.usecase.ResumeGame
 import com.freesudoku.app.domain.usecase.SaveGame
 import com.freesudoku.app.domain.usecase.StartGame
@@ -34,6 +36,7 @@ import javax.inject.Inject
 class GameViewModel @Inject constructor(
     private val resumeGame: ResumeGame,
     private val getNextCampaignPuzzle: GetNextCampaignPuzzle,
+    private val getPuzzleForBand: GetPuzzleForBand,
     private val startGame: StartGame,
     private val saveGame: SaveGame,
     private val completePuzzle: CompletePuzzle,
@@ -148,11 +151,14 @@ class GameViewModel @Inject constructor(
     /** Tracks an in-flight terminal action (advance/finish/retry/quit) so a double-tap is a no-op. */
     private var terminalActionJob: Job? = null
 
-    /** After the result sheet: record the completion and start the next campaign puzzle. */
+    /**
+     * After the result sheet: record the completion and start the next puzzle — the next
+     * campaign puzzle, or (in "Partida rápida") another puzzle at the same band.
+     */
     fun onAdvance(onReady: () -> Unit) {
         runTerminalAction {
             if (snapshot.status == GameStatus.COMPLETED) completePuzzle(snapshot)
-            snapshot = startGame(getNextCampaignPuzzle(), settings)
+            snapshot = startGame(nextPuzzleForCurrentMode(), settings)
             canPersist = true // a fresh in-progress game exists again; resume normal saving
             selected = null
             render()
@@ -175,19 +181,28 @@ class GameViewModel @Inject constructor(
 
     /**
      * "Reiniciar" en partida en curso: descarta el intento y arranca un puzzle NUEVO del mismo
-     * nivel de campaña (mismo target de dificultad). No avanza la campaña ni registra nada — el
-     * puntero de campaña no se movió, así que [getNextCampaignPuzzle] devuelve una instancia
-     * nueva para el número actual. El diálogo de confirmación vive en la UI.
+     * nivel (mismo target de dificultad — de campaña, o de la banda elegida en "Partida
+     * rápida"). No avanza la campaña ni registra nada — el puntero de campaña no se movió, así
+     * que [nextPuzzleForCurrentMode] devuelve una instancia nueva para el número/banda actual.
+     * El diálogo de confirmación vive en la UI.
      */
     fun onRestart() {
         runTerminalAction {
             _uiState.value = _uiState.value.copy(loading = true)
-            snapshot = startGame(getNextCampaignPuzzle(), settings)
+            snapshot = startGame(nextPuzzleForCurrentMode(), settings)
             canPersist = true
             selected = null
             render()
         }
     }
+
+    /**
+     * The next puzzle to hand to [startGame] for [onAdvance]/[onRestart]: the next campaign
+     * puzzle when the current one has a campaign number, or another puzzle at the same band
+     * when it doesn't ("Partida rápida" — [Puzzle.number] is null there).
+     */
+    private suspend fun nextPuzzleForCurrentMode(): Puzzle =
+        if (snapshot.puzzle.number != null) getNextCampaignPuzzle() else getPuzzleForBand(snapshot.puzzle.band)
 
     fun onQuitAfterFail(onExit: () -> Unit) {
         runTerminalAction {
@@ -270,7 +285,7 @@ class GameViewModel @Inject constructor(
             remainingPerDigit = remaining,
             canUndo = snapshot.undoStack.isNotEmpty(),
             canRedo = snapshot.redoStack.isNotEmpty(),
-            puzzleNumber = snapshot.puzzle.number ?: 0,
+            puzzleNumber = snapshot.puzzle.number,
             hintsUsed = snapshot.hintsUsed,
             band = snapshot.puzzle.band,
         )
