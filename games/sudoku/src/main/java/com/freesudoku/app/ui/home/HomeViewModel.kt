@@ -7,6 +7,7 @@ import com.freesudoku.app.data.settings.SettingsRepository
 import com.freesudoku.app.domain.model.DifficultyBand
 import com.freesudoku.app.domain.stats.PlayerStats
 import com.freesudoku.app.domain.usecase.GetNextCampaignPuzzle
+import com.freesudoku.app.domain.usecase.GetPuzzleForBand
 import com.freesudoku.app.domain.usecase.ObserveCampaignProgress
 import com.freesudoku.app.domain.usecase.ObservePlayerStats
 import com.freesudoku.app.domain.usecase.StartGame
@@ -23,7 +24,8 @@ import javax.inject.Inject
 
 data class HomeUiState(
     val loading: Boolean = true,
-    val currentNumber: Int = 1,
+    /** Null when the resumable game (if any) is a "Partida rápida" — no campaign position. */
+    val currentNumber: Int? = 1,
     val currentBand: DifficultyBand? = null,
     val hasResumableGame: Boolean = false,
     val stats: PlayerStats = PlayerStats.EMPTY,
@@ -36,6 +38,7 @@ class HomeViewModel @Inject constructor(
     observePlayerStats: ObservePlayerStats,
     private val gameRepository: GameRepository,
     private val getNextCampaignPuzzle: GetNextCampaignPuzzle,
+    private val getPuzzleForBand: GetPuzzleForBand,
     private val startGame: StartGame,
     private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
@@ -50,7 +53,8 @@ class HomeViewModel @Inject constructor(
     ) { progress, stats, currentGame, isPreparing ->
         HomeUiState(
             loading = false,
-            currentNumber = currentGame?.puzzle?.number ?: progress.currentNumber,
+            // null only when there IS a resumable game and it's a quick-play one (no number).
+            currentNumber = if (currentGame != null) currentGame.puzzle.number else progress.currentNumber,
             currentBand = currentGame?.puzzle?.band,
             hasResumableGame = currentGame != null,
             stats = stats,
@@ -71,6 +75,25 @@ class HomeViewModel @Inject constructor(
                 } finally {
                     preparing.value = false
                 }
+            }
+            onReady()
+        }
+    }
+
+    /**
+     * "Partida rápida": generates a single puzzle at [band] (no campaign number) and starts it,
+     * replacing whatever is in the current-game slot. Any confirm-you'll-lose-progress prompt
+     * lives in the UI — this always proceeds when called.
+     */
+    fun onStartQuickPlay(band: DifficultyBand, onReady: () -> Unit) {
+        if (preparing.value) return
+        viewModelScope.launch {
+            preparing.value = true
+            try {
+                val puzzle = getPuzzleForBand(band)
+                startGame(puzzle, settingsRepository.settings.first())
+            } finally {
+                preparing.value = false
             }
             onReady()
         }

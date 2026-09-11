@@ -13,6 +13,7 @@ import com.freesudoku.app.domain.model.GridCodec
 import com.freesudoku.app.domain.model.Puzzle
 import com.freesudoku.app.domain.stats.PlayerStats
 import com.freesudoku.app.domain.usecase.GetNextCampaignPuzzle
+import com.freesudoku.app.domain.usecase.GetPuzzleForBand
 import com.freesudoku.app.domain.usecase.ObserveCampaignProgress
 import com.freesudoku.app.domain.usecase.ObservePlayerStats
 import com.freesudoku.app.domain.usecase.StartGame
@@ -44,6 +45,7 @@ class HomeViewModelTest {
         progress: CampaignProgress = CampaignProgress.START,
         gameRepo: GameRepository = mockk(relaxed = true),
         getNext: GetNextCampaignPuzzle = mockk(),
+        getPuzzleForBand: GetPuzzleForBand = mockk(),
         start: StartGame = mockk(),
     ): HomeViewModel {
         coEvery { gameRepo.currentGame() } returns currentGame
@@ -55,6 +57,7 @@ class HomeViewModelTest {
             observePlayerStats = ObservePlayerStats(mockk { every { observeStats() } returns flowOf(PlayerStats.EMPTY) }),
             gameRepository = gameRepo,
             getNextCampaignPuzzle = getNext,
+            getPuzzleForBand = getPuzzleForBand,
             startGame = start,
             settingsRepository = settings,
         )
@@ -102,5 +105,39 @@ class HomeViewModelTest {
             assertThat(s.hasResumableGame).isFalse()
             cancelAndConsumeRemainingEvents()
         }
+    }
+
+    @Test fun `a resumable quick-play game shows no puzzle number`() = runTest {
+        val quickPuzzle = puzzle.copy(id = "q", number = null)
+        val snapshot = GameSnapshot(
+            quickPuzzle, Board.fromGivens(quickPuzzle.givens), emptyList(), emptyList(),
+            0, 0, 0, GameStatus.IN_PROGRESS, true,
+        )
+        val model = vm(currentGame = snapshot, progress = CampaignProgress(currentNumber = 4, highestCompleted = 3))
+        model.uiState.test {
+            var s = awaitItem()
+            while (s.loading) s = awaitItem()
+            assertThat(s.currentNumber).isNull()
+            assertThat(s.hasResumableGame).isTrue()
+            assertThat(s.currentBand).isEqualTo(DifficultyBand.FACIL)
+            cancelAndConsumeRemainingEvents()
+        }
+    }
+
+    @Test fun `onStartQuickPlay generates a puzzle for the band and starts it`() = runTest {
+        val quickPuzzle = puzzle.copy(id = "q", number = null)
+        val getPuzzleForBand = mockk<GetPuzzleForBand>()
+        coEvery { getPuzzleForBand(DifficultyBand.DIFICIL) } returns quickPuzzle
+        val start = mockk<StartGame>()
+        coEvery { start(any(), any()) } returns mockk(relaxed = true)
+        val model = vm(currentGame = null, getPuzzleForBand = getPuzzleForBand, start = start)
+
+        var ready = false
+        model.onStartQuickPlay(DifficultyBand.DIFICIL) { ready = true }
+        advanceUntilIdle()
+
+        assertThat(ready).isTrue()
+        coVerify(exactly = 1) { getPuzzleForBand(DifficultyBand.DIFICIL) }
+        coVerify(exactly = 1) { start(quickPuzzle, GameSettings()) }
     }
 }

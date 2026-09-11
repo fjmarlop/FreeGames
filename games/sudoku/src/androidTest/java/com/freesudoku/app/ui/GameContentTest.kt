@@ -114,7 +114,7 @@ class GameContentTest {
                 )
             }
         }
-        composeRule.onNodeWithText("Partida rápida").assertIsDisplayed()
+        composeRule.onNodeWithText("PARTIDA RÁPIDA").assertIsDisplayed() // ApexChip uppercases its text
     }
 
     @Test fun completing_a_quick_play_puzzle_offers_another_one_of_the_same_band() {
