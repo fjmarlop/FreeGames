@@ -22,6 +22,7 @@ fun ResultSheet(
     elapsedMsText: String,
     mistakes: Int,
     hintsUsed: Int,
+    isQuickPlay: Boolean,
     onNext: () -> Unit,
     onHome: () -> Unit,
 ) {
@@ -54,7 +55,7 @@ fun ResultSheet(
                     .padding(top = 16.dp)
                     .testTag("result_next"),
             ) {
-                Text("Siguiente puzzle")
+                Text(if (isQuickPlay) "Otro puzzle rápido" else "Siguiente puzzle")
             }
             TextButton(onClick = onHome, modifier = Modifier.fillMaxWidth()) {
                 Text("Volver a Home")

@@ -107,7 +107,7 @@ object GameSnapshotDto {
             givens = GridCodec.decode(givens),
             solution = GridCodec.decode(solution),
             difficultyScore = difficultyScore,
-            band = DifficultyBand.valueOf(band),
+            band = DifficultyBand.parseOrFloor(band),
         )
         val board = Board.restore(cells.map { BoardCell(it.value, it.given, it.notes.toSortedSet()) })
         return GameSnapshot(

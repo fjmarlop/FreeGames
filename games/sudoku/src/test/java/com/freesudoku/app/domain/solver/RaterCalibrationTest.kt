@@ -52,7 +52,7 @@ class RaterCalibrationTest {
         println("band distribution: $counts")
         // every band except the very top should be represented by the sampled corpus
         for (b in listOf(
-            DifficultyBand.PRINCIPIANTE, DifficultyBand.FACIL, DifficultyBand.MEDIO,
+            DifficultyBand.FACIL, DifficultyBand.MEDIO,
             DifficultyBand.DIFICIL, DifficultyBand.EXPERTO,
         )) {
             assertThat(counts.getOrDefault(b, 0)).isGreaterThan(0)
@@ -63,7 +63,6 @@ class RaterCalibrationTest {
 
     /** Target band per puzzle, derived from its human rating (the calibration ground truth). */
     private fun targetBand(rating: Double): DifficultyBand = when {
-        rating < 1.4 -> DifficultyBand.PRINCIPIANTE
         rating < 2.4 -> DifficultyBand.FACIL
         rating < 3.3 -> DifficultyBand.MEDIO
         rating < 4.8 -> DifficultyBand.DIFICIL
@@ -90,8 +89,8 @@ class RaterCalibrationTest {
             val scores = FEATURES.map { rater.scoreOf(it, w) }
             if (!tierMeansMonotone(scores)) return@repeat
 
-            // ascending band cut points c1..c5 (PRINCIPIANTE starts at 0)
-            val raw = DoubleArray(5) { rng.nextDouble(2.0, 95.0) }.also { it.sort() }
+            // ascending band cut points: MEDIO, DIFICIL, EXPERTO, MAESTRO (FACIL is the 0.0 floor)
+            val raw = DoubleArray(4) { rng.nextDouble(2.0, 95.0) }.also { it.sort() }
             val rho = spearman(scores, RATINGS)
             val within1 = scores.indices.count { i ->
                 kotlin.math.abs(bandOf(scores[i], raw).ordinal - targets[i].ordinal) <= 1
@@ -126,7 +125,7 @@ class RaterCalibrationTest {
                 cluePivot = ${w.cluePivot},
                 unsolvedPenalty = ${"%.1f".format(w.unsolvedPenalty)},
             )
-            band lowerBounds: PRINCIPIANTE=0.0 FACIL=${f(cuts[0])} MEDIO=${f(cuts[1])} DIFICIL=${f(cuts[2])} EXPERTO=${f(cuts[3])} MAESTRO=${f(cuts[4])}
+            band lowerBounds: FACIL=0.0 MEDIO=${f(cuts[0])} DIFICIL=${f(cuts[1])} EXPERTO=${f(cuts[2])} MAESTRO=${f(cuts[3])}
             score range: ${f(scores.min())} .. ${f(scores.max())}
             tier means: ${tierMeans(scores)}
             """.trimIndent()

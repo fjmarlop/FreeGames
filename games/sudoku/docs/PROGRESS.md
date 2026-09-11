@@ -122,9 +122,64 @@ Spec/plan: `docs/designs/2026-09-05-restart-generates-new-puzzle-design.md`,
 Verificado end-to-end en el emulador (API 35): el reinicio genera givens
 distintos, mantiene el número de puzzle, resetea timer y errores.
 
+## Migración al monorepo FreeGames (2026-09-06)
+
+El proyecto se movió a `D:\proyectos\FreeGames\games\sudoku` (monorepo de juegos,
+`git mv` con historia preservada). `applicationId` cambió a
+`es.fjmarlop.freegames.sudoku` (el `namespace`/paquete de código sigue siendo
+`com.freesudoku.app`). SDK, firma, build type release y el guard de "sin
+`INTERNET`" ahora vienen del convention plugin `freegames.android.game`
+compartido con el resto de los juegos. Detalles en el README del monorepo.
+
+## Banda PRINCIPIANTE eliminada (2026-09-11)
+
+Investigando por qué el puzzle #1 se registraba como "Fácil" y no "Principiante":
+la curva de campaña (`CampaignCurve`, `CURVE_BASE = 9.0` = umbral de FÁCIL) nunca
+apunta a PRINCIPIANTE `[0,9)` — la banda existía pero era una fila permanente en
+cero en Estadísticas. Decisión del usuario: **eliminarla**. FÁCIL pasa a ser la
+banda de entrada con `lowerBound = 0.0` (cubre `[0,23)`); el resto de los cortes
+no se mueven y no se recalibran los pesos del rater. `DifficultyBand.fromScore`
+además ya no puede lanzar `NoSuchElementException` (cae a la banda más baja en
+vez de exigir un match). Deserialización tolerante (`DifficultyBand.parseOrFloor`)
+para strings `"PRINCIPIANTE"` guardados de antes (buffer de puzzles / partida
+guardada).
+
+Spec/plan: `docs/designs/2026-09-05-drop-principiante-band-design.md`,
+`docs/plans/2026-09-05-drop-principiante-band.md`.
+
+## Modo "Partida rápida" (2026-09-11)
+
+Nuevo modo de juego: desde Home, botón "Partida rápida" abre un selector de
+dificultad (Fácil/Medio/Difícil/Experto — Maestro excluido, el generador no
+puede producirlo de forma fiable) y arranca **un** puzzle suelto, sin afectar
+la campaña.
+
+El dominio ya soportaba esto: `Puzzle.number: Int?` — una partida rápida es un
+puzzle con `number = null`, igual que ya hacían los puzzles del buffer.
+`PuzzleRepository.puzzleForBand(band)` genera directo (sin buffer) apuntando a
+un score representativo por banda. Se reutiliza el slot único `current_game`
+(sin tabla/migración nueva); si hay una campaña en curso, empezar una partida
+rápida pide confirmación. Completar una partida rápida cuenta en Estadísticas
+(total, mejor tiempo, desglose por banda) pero no avanza la campaña — mismo
+centinela `-1` que `GameRepository` ya usaba para "sin número de campaña".
+
+En pantalla de juego: chip "Partida rápida" en vez de "Puzzle #N"; "Reiniciar"
+y "Siguiente" ("Otro puzzle rápido") generan otro puzzle de la misma banda en
+vez de tirar de la campaña.
+
+Verificado end-to-end en el emulador: 9 puzzles Fácil completados vía "Otro
+puzzle rápido" sin que la campaña se moviera de PUZZLE #1; desglose por banda
+correcto en Estadísticas; "Reiniciar" en modo rápido genera un puzzle distinto
+manteniendo la banda. 128 tests unitarios + 16 instrumentados en verde, lint y
+guard de permisos limpios.
+
+Spec/plan: `docs/designs/2026-09-11-quick-play-mode-design.md`,
+`docs/plans/2026-09-11-quick-play-mode.md`.
+
 ## Estado
 
 Todo mergeado a `master`. MVP funcional + rater calibrado + bug de finalización
 corregido + límite de errores confirmado por el usuario + reskin visual
-aplicado + botón "Reiniciar" (genera puzzle nuevo). Ver `docs/plans/*` y
-`docs/designs/*` para detalles y desvíos.
+aplicado + botón "Reiniciar" (genera puzzle nuevo) + migrado al monorepo
+FreeGames + banda PRINCIPIANTE eliminada + modo "Partida rápida". Ver
+`docs/plans/*` y `docs/designs/*` para detalles y desvíos.

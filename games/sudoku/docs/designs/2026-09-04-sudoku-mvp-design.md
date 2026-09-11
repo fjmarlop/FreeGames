@@ -94,7 +94,7 @@ Android salvo utilidades neutras.
 | `Cell` | `row`, `col`, `value`, `isGiven` (pista original), `notes: Set<Int>` |
 | `Board` | estado jugable: 81 `Cell`, derivado de `Puzzle` + movimientos aplicados |
 | `Puzzle` | `id`, `number` (nº de campaña, o null si buffer sin asignar), `givens: Grid`, `solution: Grid`, `difficultyScore: Double`, `band: DifficultyBand` |
-| `DifficultyBand` | enum: `PRINCIPIANTE`, `FACIL`, `MEDIO`, `DIFICIL`, `EXPERTO`, `MAESTRO` con rango de score asociado |
+| `DifficultyBand` | enum: `FACIL`, `MEDIO`, `DIFICIL`, `EXPERTO`, `MAESTRO` con rango de score asociado |
 | `Move` | `SetValue(cell, value, previousValue)`, `SetNote(cell, digit, added)`, `ClearCell(cell, previousValue, previousNotes)` — cada uno reversible |
 | `GameSnapshot` | verdad del juego en curso: `puzzle`, `board`, `undoStack`, `redoStack`, `elapsedMs`, `mistakes`, `hintsUsed`, `status` |
 | `GameStatus` | `IN_PROGRESS`, `COMPLETED`, `FAILED` (3 errores en modo límite) |
@@ -369,7 +369,7 @@ rating. Guard + búsqueda reproducibles en `RaterCalibrationTest`.
 | `wHardest` / `wFrequency` / `wClues` | `RatingWeights.DEFAULT` | 0.53 / 0.05 / 0.66 |
 | `cluePivot` | `RatingWeights.DEFAULT` | 34 |
 | `unsolvedPenalty` | `RatingWeights.DEFAULT` | 39.0 |
-| Rangos de banda (score) | `DifficultyBand` | PRINCIPIANTE 0, FACIL 9, MEDIO 23, DIFICIL 40, EXPERTO 49, MAESTRO 80 |
+| Rangos de banda (score) | `DifficultyBand` | FACIL 0, MEDIO 23, DIFICIL 40, EXPERTO 49, MAESTRO 80 |
 | `CURVE_BASE` / `CURVE_GROWTH` / `CURVE_MAX` / `CURVE_NOISE` | `CampaignCurve` | 9.0 / 7.0 / 56.0 / 3.0 |
 | `CARVE_TOLERANCE_BASE` / `_STEP` / `_MAX` | `CampaignCurve` | 6.0 / 1.5 / 20.0 |
 | `CARVE_MAX_ATTEMPTS` | `PuzzleFactory` | 40 |
@@ -380,7 +380,7 @@ rating. Guard + búsqueda reproducibles en `RaterCalibrationTest`.
 El solver del MVP llega hasta X-Wing. Los puzzles que necesitan técnicas más
 avanzadas (XY-Wing, coloring, cadenas…) el solver no los resuelve → puntúan por
 `unsolvedPenalty`. Consecuencia: el tallado greedy produce una distribución
-**bimodal** — la mayoría de puzzles caen en 12–29 (PRINCIPIANTE→MEDIO) o en 53–71
+**bimodal** — la mayoría de puzzles caen en 12–29 (FACIL→MEDIO) o en 53–71
 (DIFICIL→MAESTRO), con **poca cobertura en 30–52** (DIFICIL). La `CampaignCurve` se
 bajó a `CURVE_MAX 56` para no apuntar a scores que el generador casi nunca produce.
 **Fix real (follow-up):** agregar 2–3 técnicas al solver (XY-Wing, Simple Colouring,

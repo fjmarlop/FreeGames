@@ -55,4 +55,10 @@ class GameSnapshotDtoTest {
         assertThat(GameSnapshotDto.fromJsonOrNull("not json")).isNull()
         assertThat(GameSnapshotDto.fromJsonOrNull("{}")).isNull()
     }
+
+    @Test fun `a snapshot persisted with a since-removed band deserializes as FACIL`() {
+        val json = GameSnapshotDto.toJson(snapshot()).replace("\"FACIL\"", "\"PRINCIPIANTE\"")
+        val restored = GameSnapshotDto.fromJson(json)
+        assertThat(restored.puzzle.band).isEqualTo(DifficultyBand.FACIL)
+    }
 }
