@@ -122,9 +122,35 @@ Spec/plan: `docs/designs/2026-09-05-restart-generates-new-puzzle-design.md`,
 Verificado end-to-end en el emulador (API 35): el reinicio genera givens
 distintos, mantiene el número de puzzle, resetea timer y errores.
 
+## Migración al monorepo FreeGames (2026-09-06)
+
+El proyecto se movió a `D:\proyectos\FreeGames\games\sudoku` (monorepo de juegos,
+`git mv` con historia preservada). `applicationId` cambió a
+`es.fjmarlop.freegames.sudoku` (el `namespace`/paquete de código sigue siendo
+`com.freesudoku.app`). SDK, firma, build type release y el guard de "sin
+`INTERNET`" ahora vienen del convention plugin `freegames.android.game`
+compartido con el resto de los juegos. Detalles en el README del monorepo.
+
+## Banda PRINCIPIANTE eliminada (2026-09-11)
+
+Investigando por qué el puzzle #1 se registraba como "Fácil" y no "Principiante":
+la curva de campaña (`CampaignCurve`, `CURVE_BASE = 9.0` = umbral de FÁCIL) nunca
+apunta a PRINCIPIANTE `[0,9)` — la banda existía pero era una fila permanente en
+cero en Estadísticas. Decisión del usuario: **eliminarla**. FÁCIL pasa a ser la
+banda de entrada con `lowerBound = 0.0` (cubre `[0,23)`); el resto de los cortes
+no se mueven y no se recalibran los pesos del rater. `DifficultyBand.fromScore`
+además ya no puede lanzar `NoSuchElementException` (cae a la banda más baja en
+vez de exigir un match). Deserialización tolerante (`DifficultyBand.parseOrFloor`)
+para strings `"PRINCIPIANTE"` guardados de antes (buffer de puzzles / partida
+guardada).
+
+Spec/plan: `docs/designs/2026-09-05-drop-principiante-band-design.md`,
+`docs/plans/2026-09-05-drop-principiante-band.md`.
+
 ## Estado
 
 Todo mergeado a `master`. MVP funcional + rater calibrado + bug de finalización
 corregido + límite de errores confirmado por el usuario + reskin visual
-aplicado + botón "Reiniciar" (genera puzzle nuevo). Ver `docs/plans/*` y
-`docs/designs/*` para detalles y desvíos.
+aplicado + botón "Reiniciar" (genera puzzle nuevo) + migrado al monorepo
+FreeGames + banda PRINCIPIANTE eliminada. Ver `docs/plans/*` y `docs/designs/*`
+para detalles y desvíos.
