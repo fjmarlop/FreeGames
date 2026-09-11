@@ -24,7 +24,7 @@ class HomeContentTest {
                     state = HomeUiState(
                         loading = false,
                         currentNumber = 1,
-                        currentBand = DifficultyBand.PRINCIPIANTE,
+                        currentBand = DifficultyBand.FACIL,
                         hasResumableGame = false,
                     ),
                     onPlayOrContinue = { played = true },

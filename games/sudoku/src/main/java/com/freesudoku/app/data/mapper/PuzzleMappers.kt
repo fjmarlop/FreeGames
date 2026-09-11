@@ -11,7 +11,7 @@ fun PuzzleBufferEntity.toDomain(): Puzzle = Puzzle(
     givens = GridCodec.decode(givens),
     solution = GridCodec.decode(solution),
     difficultyScore = difficultyScore,
-    band = DifficultyBand.valueOf(band),
+    band = DifficultyBand.parseOrFloor(band),
 )
 
 fun Puzzle.toBufferEntity(createdAt: Long = System.currentTimeMillis()): PuzzleBufferEntity =
