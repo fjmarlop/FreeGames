@@ -9,6 +9,7 @@ import com.freesudoku.app.data.repository.StatsRepository
 import com.freesudoku.app.data.settings.GameSettings
 import com.freesudoku.app.domain.campaign.CampaignProgress
 import com.freesudoku.app.domain.model.Board
+import com.freesudoku.app.domain.model.DifficultyBand
 import com.freesudoku.app.domain.model.GameSnapshot
 import com.freesudoku.app.domain.model.GameStatus
 import com.freesudoku.app.domain.model.Puzzle
@@ -25,6 +26,13 @@ class GetNextCampaignPuzzle @Inject constructor(
         campaignRepository.ensureInitialized()
         return puzzleRepository.puzzleForCampaign(campaignRepository.currentNumber())
     }
+}
+
+/** Generates a single puzzle at [band] for "Partida rápida" — no campaign number attached. */
+class GetPuzzleForBand @Inject constructor(
+    private val puzzleRepository: PuzzleRepository,
+) {
+    suspend operator fun invoke(band: DifficultyBand): Puzzle = puzzleRepository.puzzleForBand(band)
 }
 
 /** Builds a fresh game from a puzzle, honouring the current settings, and persists it. */
@@ -60,7 +68,12 @@ class SaveGame @Inject constructor(private val gameRepository: GameRepository) {
     suspend operator fun invoke(snapshot: GameSnapshot) = gameRepository.save(snapshot)
 }
 
-/** Records a finished puzzle, advances the campaign once, clears the in-progress game. */
+/**
+ * Records a finished puzzle and clears the in-progress game. A campaign puzzle
+ * ([Puzzle.number] non-null) also advances the campaign; a "Partida rápida" puzzle
+ * (`number == null`) is recorded for stats only — same [QUICK_PLAY_PUZZLE_NUMBER] sentinel
+ * [GameRepository] already uses for the in-progress row.
+ */
 class CompletePuzzle @Inject constructor(
     private val gameRepository: GameRepository,
     private val campaignRepository: CampaignRepository,
@@ -68,10 +81,10 @@ class CompletePuzzle @Inject constructor(
 ) {
     suspend operator fun invoke(snapshot: GameSnapshot) {
         require(snapshot.status == GameStatus.COMPLETED) { "puzzle is not completed" }
-        val number = requireNotNull(snapshot.puzzle.number) { "campaign puzzle has no number" }
+        val number = snapshot.puzzle.number
         completedPuzzleDao.insert(
             CompletedPuzzleEntity(
-                puzzleNumber = number,
+                puzzleNumber = number ?: QUICK_PLAY_PUZZLE_NUMBER,
                 difficultyScore = snapshot.puzzle.difficultyScore,
                 band = snapshot.puzzle.band.name,
                 durationMs = snapshot.elapsedMs,
@@ -80,8 +93,12 @@ class CompletePuzzle @Inject constructor(
                 completedAt = System.currentTimeMillis(),
             )
         )
-        campaignRepository.advanceAfterCompleting(number)
+        if (number != null) campaignRepository.advanceAfterCompleting(number)
         gameRepository.clear()
+    }
+
+    private companion object {
+        const val QUICK_PLAY_PUZZLE_NUMBER = -1
     }
 }
 

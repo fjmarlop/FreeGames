@@ -21,5 +21,13 @@ enum class DifficultyBand(val lowerBound: Double) {
         /** Tolerant parse for persisted strings — an unknown/removed name falls back to the floor band. */
         fun parseOrFloor(name: String): DifficultyBand =
             entries.firstOrNull { it.name == name } ?: FACIL
+
+        /**
+         * Bands a player can pick for "Partida rápida". MAESTRO is excluded: the solver only
+         * reaches X-Wing, so the generator cannot reliably produce a score in `[80, ∞)`
+         * (`CampaignCurve.CURVE_MAX = 56` already reflects the same ceiling) — offering it would
+         * be misleading.
+         */
+        val QUICK_PLAY_SELECTABLE: List<DifficultyBand> = listOf(FACIL, MEDIO, DIFICIL, EXPERTO)
     }
 }

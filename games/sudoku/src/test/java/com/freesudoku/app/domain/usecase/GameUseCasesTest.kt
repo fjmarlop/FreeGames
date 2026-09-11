@@ -32,15 +32,17 @@ class GameUseCasesTest {
         difficultyScore = 22.0, band = DifficultyBand.FACIL,
     )
 
-    private fun completedSnapshot(): GameSnapshot {
+    private val quickPuzzle = puzzle.copy(id = "q", number = null)
+
+    private fun completedSnapshot(p: Puzzle = puzzle): GameSnapshot {
         val engine = GameEngine()
         var s = GameSnapshot(
-            puzzle, Board.fromGivens(puzzle.givens), emptyList(), emptyList(),
+            p, Board.fromGivens(p.givens), emptyList(), emptyList(),
             elapsedMs = 90_000, mistakes = 1, hintsUsed = 2,
             status = GameStatus.IN_PROGRESS, mistakeLimitEnabled = true,
         )
         for (r in 0 until 9) for (c in 0 until 9) {
-            if (s.board.cell(r, c).value == 0) s = engine.setValue(s, r, c, puzzle.solution.valueAt(r, c))
+            if (s.board.cell(r, c).value == 0) s = engine.setValue(s, r, c, p.solution.valueAt(r, c))
         }
         check(s.status == GameStatus.COMPLETED)
         return s
@@ -72,6 +74,20 @@ class GameUseCasesTest {
         coVerify(exactly = 1) { gameRepo.clear() }
     }
 
+    @Test fun `CompletePuzzle records a quick-play completion without advancing the campaign`() = runTest {
+        val gameRepo = mockk<GameRepository>(relaxed = true)
+        val campaignRepo = mockk<CampaignRepository>(relaxed = true)
+        val dao = mockk<CompletedPuzzleDao>()
+        val entity = slot<CompletedPuzzleEntity>()
+        coEvery { dao.insert(capture(entity)) } just Runs
+
+        CompletePuzzle(gameRepo, campaignRepo, dao).invoke(completedSnapshot(quickPuzzle))
+
+        assertThat(entity.captured.puzzleNumber).isEqualTo(-1)
+        coVerify(exactly = 0) { campaignRepo.advanceAfterCompleting(any()) }
+        coVerify(exactly = 1) { gameRepo.clear() }
+    }
+
     @Test fun `CompletePuzzle rejects a non-completed snapshot`() = runTest {
         val open = GameSnapshot(
             puzzle, Board.fromGivens(puzzle.givens), emptyList(), emptyList(),
@@ -84,6 +100,16 @@ class GameUseCasesTest {
             threw = true
         }
         assertThat(threw).isTrue()
+    }
+
+    @Test fun `GetPuzzleForBand asks the puzzle repo for that band`() = runTest {
+        val puzzleRepo = mockk<PuzzleRepository>()
+        coEvery { puzzleRepo.puzzleForBand(DifficultyBand.DIFICIL) } returns quickPuzzle
+
+        val result = GetPuzzleForBand(puzzleRepo).invoke(DifficultyBand.DIFICIL)
+
+        assertThat(result).isEqualTo(quickPuzzle)
+        coVerify(exactly = 1) { puzzleRepo.puzzleForBand(DifficultyBand.DIFICIL) }
     }
 
     @Test fun `GetNextCampaignPuzzle initializes progress then asks the puzzle repo`() = runTest {

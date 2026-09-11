@@ -6,6 +6,7 @@ import com.freesudoku.app.data.mapper.toDomain
 import com.freesudoku.app.di.ApplicationScope
 import com.freesudoku.app.domain.campaign.CampaignCurve
 import com.freesudoku.app.domain.generator.PuzzleFactory
+import com.freesudoku.app.domain.model.DifficultyBand
 import com.freesudoku.app.domain.model.Puzzle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -40,6 +41,13 @@ class PuzzleRepository @Inject constructor(
         return puzzle
     }
 
+    /**
+     * A single puzzle for "Partida rápida": targets a representative score inside [band], no
+     * campaign number, no buffer involved (a one-off action, not the continuous campaign stream).
+     */
+    suspend fun puzzleForBand(band: DifficultyBand): Puzzle =
+        factory.generateForTarget(QUICK_PLAY_TARGET_SCORE.getValue(band))
+
     /** Blocking refill — used by tests and first-run warm-up. */
     suspend fun refillNow(fromNumber: Int) = refillMutex.withLock {
         val missing = MIN_BUFFER - bufferDao.countNow()
@@ -54,5 +62,13 @@ class PuzzleRepository @Inject constructor(
 
     companion object {
         const val MIN_BUFFER = 4
+
+        /** Representative score per band for "Partida rápida" — comfortably inside each range. */
+        private val QUICK_PLAY_TARGET_SCORE: Map<DifficultyBand, Double> = mapOf(
+            DifficultyBand.FACIL to 14.0,
+            DifficultyBand.MEDIO to 31.0,
+            DifficultyBand.DIFICIL to 44.0,
+            DifficultyBand.EXPERTO to 52.0,
+        )
     }
 }
