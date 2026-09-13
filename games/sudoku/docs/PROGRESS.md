@@ -176,10 +176,28 @@ guard de permisos limpios.
 Spec/plan: `docs/designs/2026-09-11-quick-play-mode-design.md`,
 `docs/plans/2026-09-11-quick-play-mode.md`.
 
+## Pantalla encendida mientras se juega (2026-09-13)
+
+Pedido del usuario: el apagado automático de pantalla (ahorro de batería)
+interrumpe una partida mientras se piensa la jugada. `GameScreen` ahora fija
+`FLAG_KEEP_SCREEN_ON` (vía `View.keepScreenOn`) solo mientras
+`GameStatus.IN_PROGRESS`; se libera automáticamente al completar/perder el
+puzzle o al salir de la pantalla — el resto de la app (Home, Estadísticas,
+Ajustes, la pantalla de resultado) respeta el apagado normal del sistema.
+Lógica de decisión extraída a `keepScreenOnFor(status)` (testeada); el efecto
+en sí (`DisposableEffect` + `LocalView`) no tiene infraestructura de test en
+este proyecto (igual que el resto del wiring de `GameScreen`, no probado
+directamente).
+
+Verificado en el emulador inspeccionando `dumpsys window` sobre la ventana de
+la app: el flag `KEEP_SCREEN_ON` aparece al entrar a jugar y desaparece al
+completar el puzzle o volver a Home.
+
 ## Estado
 
 Todo mergeado a `master`. MVP funcional + rater calibrado + bug de finalización
 corregido + límite de errores confirmado por el usuario + reskin visual
 aplicado + botón "Reiniciar" (genera puzzle nuevo) + migrado al monorepo
-FreeGames + banda PRINCIPIANTE eliminada + modo "Partida rápida". Ver
-`docs/plans/*` y `docs/designs/*` para detalles y desvíos.
+FreeGames + banda PRINCIPIANTE eliminada + modo "Partida rápida" + pantalla
+encendida durante la partida. Ver `docs/plans/*` y `docs/designs/*` para
+detalles y desvíos.

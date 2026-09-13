@@ -22,12 +22,14 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -41,6 +43,9 @@ import com.freesudoku.app.ui.components.NumberPad
 import com.freesudoku.app.ui.components.ResultSheet
 import com.freesudoku.app.ui.components.SudokuBoard
 
+/** Only while a puzzle is actually in progress — once completed/failed there's no move to ponder. */
+internal fun keepScreenOnFor(status: GameStatus): Boolean = status == GameStatus.IN_PROGRESS
+
 @Composable
 fun GameScreen(
     onExit: () -> Unit,
@@ -50,6 +55,16 @@ fun GameScreen(
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResume() }
     LifecycleEventEffect(Lifecycle.Event.ON_PAUSE) { viewModel.onPause() }
+
+    // Keep the screen from dimming/locking while there's an active puzzle to think over — the
+    // system's own screen timeout is exactly what makes players lose their place mid-thought.
+    // Only while IN_PROGRESS: once completed/failed there's no move being pondered, so the normal
+    // timeout applies again. Always cleared on dispose (leaving the screen) regardless of status.
+    val view = LocalView.current
+    DisposableEffect(state.status) {
+        view.keepScreenOn = keepScreenOnFor(state.status)
+        onDispose { view.keepScreenOn = false }
+    }
 
     GameContent(
         state = state,
